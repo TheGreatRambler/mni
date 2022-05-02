@@ -32,7 +32,9 @@ namespace TinyCode {
 				}
 
 				if(current_bit % 8 == 0) {
-					bytes.push_back(0);
+					if(bytes.size() <= (current_bit >> 3)) {
+						bytes.push_back(0);
+					}
 				} else {
 					bytes[current_bit >> 3] <<= 1;
 				}
@@ -59,9 +61,10 @@ namespace TinyCode {
 					return current_bit;
 				}
 
-				// std::cout << (int)current_bit << " and " << (int)bit_size << std::endl;
 				if(current_bit % 8 == 0) {
-					bytes.push_back(0);
+					if(bytes.size() <= (current_bit >> 3)) {
+						bytes.push_back(0);
+					}
 				} else {
 					bytes[current_bit >> 3] <<= 1;
 				}

@@ -121,4 +121,12 @@ namespace TinyCode {
 	private:
 		std::vector<std::string> instructions;
 	};
+
+	namespace Export {
+struct QRCode {
+
+};
+
+		void GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height);
+	}
 }
