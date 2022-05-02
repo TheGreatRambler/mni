@@ -21,5 +21,20 @@ namespace TinyCode {
 			}
 			return output;
 		}
+
+		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes, bool with_delimiter) {
+			constexpr char hexmap[]
+				= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+			std::string output = "{";
+			for(uint8_t byte : bytes) {
+				output += "0x";
+				output += hexmap[(byte & 0xF0) >> 4];
+				output += hexmap[byte & 0x0F];
+				output += ",";
+			}
+			output.pop_back();
+			output += "}";
+			return output;
+		}
 	}
 }

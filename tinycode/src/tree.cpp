@@ -1,41 +1,51 @@
 #include <tinycode/tree.hpp>
 
+#include <bitset>
 #include <iostream>
 #include <queue>
 
 namespace TinyCode {
 	namespace Tree {
-		void PrintTree(Node* root, std::string str) {
+		template <typename T> void PrintTree(Node* root, std::string str) {
 			if(!root) {
 				return;
 			}
 
 			if(root->data != 0) {
-				std::cout << root->data << ": " << str << std::endl;
+				std::cout << (T)root->data << ": " << str << std::endl;
 			}
 
-			PrintTree(root->left, str + "0");
-			PrintTree(root->right, str + "1");
+			PrintTree<T>(root->left, str + "0");
+			PrintTree<T>(root->right, str + "1");
 		}
 
-		void BuildRepresentation(Node* root, NodeRepresentation rep, std::unordered_map<uint64_t, Node*>& rep_map) {
+		void BuildRepresentation(
+			Node* root, NodeRepresentation rep, std::unordered_map<int64_t, NodeRepresentation>& rep_map) {
 			if(!root) {
 				return;
 			}
 
 			if(root->data != 0) {
-				root->representation = rep;
-				rep_map[root->data]  = root;
+				// std::string rep_string = std::bitset<64>(rep.representation).to_string();
+				// std::cout << (char)root->data << ": " << rep_string.substr(rep_string.size() - rep.bit_size)
+				//		  << std::endl;
+				// root->representation.representation = rep.representation;
+				// root->representation.bit_size       = rep.bit_size;
+				rep_map[root->data] = rep;
 			}
 
 			// Further build representation
 			BuildRepresentation(
 				root->left, NodeRepresentation { rep.representation << 1, (uint8_t)(rep.bit_size + 1) }, rep_map);
 			BuildRepresentation(root->right,
-				NodeRepresentation { (rep.representation << 1) | 0b00000001, (uint8_t)(rep.bit_size + 1) }, rep_map);
+				NodeRepresentation { (rep.representation << 1) | 0x1, (uint8_t)(rep.bit_size + 1) }, rep_map);
 		}
 
-		Node* BuildHuffman(std::vector<Node> nodes) {
+		void BuildRepresentation(Node* root, std::unordered_map<int64_t, NodeRepresentation>& rep_map) {
+			BuildRepresentation(root, NodeRepresentation { 0, 0 }, rep_map);
+		}
+
+		Node* BuildHuffman(std::vector<Node>& nodes) {
 			auto node_compare = [](Node* left, Node* right) { return left->freq > right->freq; };
 			std::priority_queue<Node*, std::vector<Node*>, decltype(node_compare)> min_heap;
 
@@ -78,5 +88,8 @@ namespace TinyCode {
 
 			free(root);
 		}
+
+		template void PrintTree<int>(Node* root, std::string str);
+		template void PrintTree<char>(Node* root, std::string str);
 	}
 }

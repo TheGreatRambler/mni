@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(libtinycode)
+project(tinycode)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 #option(BUILD_CACHED_CUDA_MANAGER OFF)
 #add_subdirectory(third_party/Open3D)
 
-set(LIBTINYCODE_SOURCES
+set(tinycode_SOURCES
 	src/main.cpp
 	src/encoding.cpp
 	src/decoding.cpp
@@ -17,10 +17,10 @@ set(LIBTINYCODE_SOURCES
 	src/debug.cpp
 )
 
-add_library(libtinycode STATIC ${LIBTINYCODE_SOURCES})
-set_target_properties(libtinycode PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_compile_options(libtinycode PRIVATE -Wall -Wextra)
+add_library(tinycode STATIC ${tinycode_SOURCES})
+set_target_properties(tinycode PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_options(tinycode PRIVATE -Wall -Wextra)
 
 #target_include_directories(libmodeler PUBLIC include Open3D)
 #target_link_libraries(libmodeler PUBLIC Open3D)
-target_include_directories(libtinycode PUBLIC include)
+target_include_directories(tinycode PUBLIC include)

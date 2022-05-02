@@ -1,6 +1,11 @@
 #include <tinycode.hpp>
+#include <tinycode/tree.hpp>
 
+#include <bit>
+#include <bitset>
+#include <cstdint>
 #include <iostream>
+#include <unordered_map>
 
 namespace TinyCode {
 	namespace Encoding {
@@ -14,13 +19,8 @@ namespace TinyCode {
 		}
 
 		uint8_t GetRequiredBits(int64_t num) {
-			num                   = std::abs(num);
-			uint8_t bits_required = 0;
-			do {
-				bits_required++;
-				num >>= 1;
-			} while(num != 0);
-			return bits_required;
+			// Must cast to unsigned but works regardless
+			return std::bit_width<uint64_t>(std::abs(num));
 		}
 
 		uint64_t WriteNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
@@ -59,6 +59,7 @@ namespace TinyCode {
 					return current_bit;
 				}
 
+				// std::cout << (int)current_bit << " and " << (int)bit_size << std::endl;
 				if(current_bit % 8 == 0) {
 					bytes.push_back(0);
 				} else {
@@ -85,7 +86,59 @@ namespace TinyCode {
 			return WriteNumUnsigned(num, bit_size, current_bit, bytes);
 		}
 
-		uint64_t WriteIdealIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		uint64_t WriteHuffmanHeader(std::vector<int64_t> data,
+			std::unordered_map<int64_t, TinyCode::Tree::NodeRepresentation>& rep_map, uint64_t current_bit,
+			std::vector<uint8_t>& bytes) {
+			std::unordered_map<int64_t, TinyCode::Tree::Node> element_frequencies;
+
+			for(int64_t num : data) {
+				if(element_frequencies.count(num)) {
+					element_frequencies[num].freq++;
+				} else {
+					element_frequencies[num] = TinyCode::Tree::Node(num, 1);
+				}
+			}
+
+			std::vector<TinyCode::Tree::Node> element_frequencies_list;
+
+			for(auto& element : element_frequencies) {
+				element_frequencies_list.push_back(element.second);
+			}
+
+			TinyCode::Tree::Node* root = TinyCode::Tree::BuildHuffman(element_frequencies_list);
+			// TinyCode::Tree::PrintTree<char>(root, "");
+			TinyCode::Tree::BuildRepresentation(root, rep_map);
+			TinyCode::Tree::FreeTree(root);
+
+			std::vector<int64_t> element_list;
+			std::vector<TinyCode::Tree::NodeRepresentation> representation_list;
+			for(auto& element : rep_map) {
+				// std::cout << (char)element.first << " has representation bit size "
+				//		  << (int)element.second->representation.bit_size << std::endl;
+				element_list.push_back(element.first);
+				representation_list.push_back(element.second);
+			}
+
+			current_bit = WriteSimpleIntegerList(element_list, current_bit, bytes);
+
+			for(int i = 0; i < element_list.size(); i++) {
+				auto& rep = representation_list[i];
+				// std::string rep_string = std::bitset<64>(rep.representation).to_string();
+				// std::cout << (char)element_list[i] << ": " << rep_string.substr(rep_string.size() - rep.bit_size)
+				//		  << std::endl;
+				current_bit = WriteNumUnsigned(rep.bit_size, 6, current_bit, bytes);
+				current_bit = WriteNumUnsigned(rep.representation, rep.bit_size, current_bit, bytes);
+			}
+
+			return current_bit;
+		}
+
+		// Simple works extremely well for tiny arrays, but not for general compression
+		uint64_t WriteSimpleIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			if(data.size() > (0x1 << LIST_SIZE_BITS)) {
+				// TODO data array is too large for chosen list size bits, ask user to compile under different settings
+			}
+
 			// Determine best encoding scheme
 			uint8_t max_bits_required_fixed           = 0;
 			uint64_t total_bits_required_tagged       = LIST_TYPE_BITS + LIST_SIZE_BITS + 1;
@@ -226,6 +279,95 @@ namespace TinyCode {
 			}
 
 			return current_bit;
+		}
+
+		uint64_t WriteHuffmanIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			if(data.size() > (0x1 << LIST_SIZE_BITS)) {
+				// TODO data array is too large for chosen list size bits, ask user to compile under different settings
+			}
+
+			// List size
+			current_bit = WriteNumUnsigned(data.size(), LIST_SIZE_BITS, current_bit, bytes);
+
+			// std::unordered_map<int64_t, std::vector<int64_t>> cache;
+			// int64_t cache[CACHE_SIZE];
+
+			std::unordered_map<int64_t, TinyCode::Tree::NodeRepresentation> rep_map;
+			current_bit = WriteHuffmanHeader(data, rep_map, current_bit, bytes);
+
+			for(int64_t num : data) {
+				auto& rep   = rep_map[num];
+				current_bit = WriteNumUnsigned(rep.representation, rep.bit_size, current_bit, bytes);
+			}
+
+			return current_bit;
+
+			/*
+						struct CacheEntry {
+							int64_t num { 0 };
+							uint16_t entry_index { 0 };
+							std::array<uint16_t, CACHE_ENTRY_SIZE> entries = { 0 };
+						};
+						static std::array<CacheEntry, CACHE_SIZE> cache;
+						uint16_t cache_index = 0;
+
+						int64_t last_num = 0;
+						for(size_t i = 0; i < data.size(); i++) {
+							int64_t num               = data[i];
+							uint8_t default_size_bits = GetRequiredBits(i);
+
+							// uint8_t cache_bits = 256;
+							// if(cache[num % CACHE_SIZE] == num) {
+							//	cache_bits = CACHE_BITS;
+							//}
+
+							CacheEntry* entry
+								= std::find(cache.begin(), cache.end(), [&](CacheEntry& entry) { return entry.num ==
+			   num; });
+
+							if(entry == cache.end()) {
+								entry      = &cache[cache_index];
+								entry->num = num;
+								entry->entries.fill(0);
+								entry->entry_index = 0;
+								if(cache_index == CACHE_SIZE - 1) {
+									cache_index = 0;
+								} else {
+									cache_index++;
+								}
+							}
+
+							uint16_t largest_match_location = 0;
+							uint16_t largest_match_size     = 0;
+							for(uint16_t loc : entry->entries) {
+								uint16_t offset = 1;
+								while(i + offset < data.size() && loc + offset < i) {
+									if(data[loc + offset] != data[i + offset]) {
+										break;
+									}
+									offset++;
+								}
+
+								if(offset > largest_match_size) {
+									largest_match_location = loc;
+									largest_match_size     = offset;
+								}
+							}
+
+							if(largest_match_size > 2) {
+								// Encode following size integers from sliding window
+							}
+
+							entry->entries[entry->entry_index] = i;
+							if(entry->entry_index == CACHE_ENTRY_SIZE - 1) {
+								entry->entry_index = 0;
+							} else {
+								entry->entry_index++;
+							}
+
+							last_num = num;
+						}
+						*/
 		}
 	}
 }

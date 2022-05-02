@@ -19,4 +19,4 @@ set_target_properties(main PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(main PUBLIC libtinycode pthread)
+target_link_libraries(main PUBLIC tinycode pthread)
