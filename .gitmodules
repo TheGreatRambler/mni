@@ -1,3 +1,6 @@
 [submodule "third_party/zxing"]
 	path = third_party/zxing
 	url = https://github.com/nu-book/zxing-cpp
+[submodule "third_party/skia"]
+	path = third_party/skia
+	url = https://github.com/google/skia

@@ -36,5 +36,14 @@ namespace TinyCode {
 			output += "}";
 			return output;
 		}
+
+		bool AreIdentical(std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size) {
+			for(int i = 0; i < (size >> 3); i++) {
+				if(bytes1[i] != bytes2[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 }

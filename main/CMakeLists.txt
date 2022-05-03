@@ -10,8 +10,7 @@ add_executable(main ${APPLICATION_TYPE}
 )
 
 target_include_directories(main PUBLIC include src)
-#target_compile_options(main PRIVATE -Wall -Wextra -Werror)
-target_compile_options(main PRIVATE -Wall -Wextra)
+target_compile_options(main PRIVATE -Wall -Wextra -Wno-deprecated-declarations)
 
 set_target_properties(main PROPERTIES
 		OUTPUT_NAME "tinycode"
@@ -19,4 +18,4 @@ set_target_properties(main PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(main PUBLIC tinycode pthread)
+target_link_libraries(main PUBLIC tinycode)

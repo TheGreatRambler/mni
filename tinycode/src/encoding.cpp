@@ -18,6 +18,26 @@ namespace TinyCode {
 			}
 		}
 
+		void CopyOver(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest,
+			uint64_t dest_offset) {
+			// TODO handle dest_offset, current optimizations are based around this being 0
+			uint64_t dest_current_bit = 0;
+			uint64_t src_current_bit  = src_offset;
+			uint8_t offset_modulo     = src_offset % 8;
+			uint8_t offset_inverse    = 8 - offset_modulo;
+
+			do {
+				if(offset_modulo == 0) {
+					dest.push_back(src[src_current_bit >> 3]);
+					src_current_bit += 8;
+				} else {
+					uint8_t result = src[src_current_bit >> 3] << offset_modulo;
+					src_current_bit += 8;
+					dest.push_back(result | (src[src_current_bit >> 3] >> offset_inverse));
+				}
+			} while(src_current_bit - src_offset < size);
+		}
+
 		uint8_t GetRequiredBits(int64_t num) {
 			// Must cast to unsigned but works regardless
 			return std::bit_width<uint64_t>(std::abs(num));
@@ -26,11 +46,7 @@ namespace TinyCode {
 		uint64_t WriteNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			int64_t num_to_write = std::abs(num) << (64 - bit_size);
 			bool sign_set        = false;
-			while(true) {
-				if(bit_size == 0) {
-					return current_bit;
-				}
-
+			while(bit_size != 0) {
 				if(current_bit % 8 == 0) {
 					if(bytes.size() <= (current_bit >> 3)) {
 						bytes.push_back(0);
@@ -52,15 +68,13 @@ namespace TinyCode {
 
 				current_bit++;
 			}
+
+			return current_bit;
 		}
 
 		uint64_t WriteNumUnsigned(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			int64_t num_to_write = num << (64 - bit_size);
-			while(true) {
-				if(bit_size == 0) {
-					return current_bit;
-				}
-
+			while(bit_size != 0) {
 				if(current_bit % 8 == 0) {
 					if(bytes.size() <= (current_bit >> 3)) {
 						bytes.push_back(0);
@@ -76,6 +90,8 @@ namespace TinyCode {
 				bit_size--;
 				current_bit++;
 			}
+
+			return current_bit;
 		}
 
 		uint64_t WriteTaggedNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {

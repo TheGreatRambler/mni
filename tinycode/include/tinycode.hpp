@@ -44,6 +44,8 @@ namespace TinyCode {
 
 	namespace Encoding {
 		void FixLastByte(uint64_t current_bit, std::vector<uint8_t>& bytes);
+		void CopyOver(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest,
+			uint64_t dest_offset);
 		uint8_t GetRequiredBits(int64_t num);
 		uint64_t WriteNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t WriteNumUnsigned(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
@@ -111,6 +113,7 @@ namespace TinyCode {
 	namespace Debug {
 		std::string Print(uint64_t size, std::vector<uint8_t>& bytes, bool with_delimiter);
 		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes, bool with_delimiter);
+		bool AreIdentical(std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size);
 	}
 
 	class Parser {
@@ -123,10 +126,10 @@ namespace TinyCode {
 	};
 
 	namespace Export {
-struct QRCode {
+		void GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path);
+	}
 
-};
-
-		void GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height);
+	namespace Import {
+		void ScanQRCode(std::vector<uint8_t>& bytes, std::string path);
 	}
 }
