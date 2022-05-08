@@ -4,3 +4,6 @@
 [submodule "third_party/skia"]
 	path = third_party/skia
 	url = https://github.com/google/skia
+[submodule "third_party/binaryen"]
+	path = third_party/binaryen
+	url = https://github.com/TheGreatRambler/binaryen

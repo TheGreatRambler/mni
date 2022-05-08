@@ -23,6 +23,14 @@ execute_process(
 	WORKING_DIRECTORY ${SKIA_DIR})
 execute_process(COMMAND ninja WORKING_DIRECTORY ${SKIA_CMAKE_DIR})
 
+#CC=clang CXX=clang++ cmake -DCMAKE_CXX_FLAGS="-Wno-deprecated" -DBUILD_TESTS=OFF   ..
+# Binaryen for webassembly
+#set(BUILD_EXAMPLES OFF)
+#set(BUILD_BLACKBOX_TESTS OFF)
+#set(BUILD_UNIT_TESTS OFF)
+#set(BUILD_PYTHON_MODULE OFF)
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/zxing ${CMAKE_CURRENT_BINARY_DIR}/third_party/zxing)
+
 set(tinycode_SOURCES
 	src/main.cpp
 	src/encoding.cpp
