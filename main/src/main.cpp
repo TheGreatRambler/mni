@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <istream>
 #include <numeric>
 #include <vector>
 
@@ -114,5 +116,16 @@ int main(int, char*[]) {
 	// fmt::print("Encoding and decoding took {} milliseconds\n",
 	//	std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
 	// testImages();
+
+	std::ifstream testFile("test.wasm", std::ios::binary);
+	std::vector<uint8_t> fileContents((std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
+	std::vector<uint8_t> out;
+
+	TinyCode::Wasm::Optimize(fileContents, out);
+
+	std::ofstream fout("test2.wasm", std::ios::out | std::ios::binary);
+	fout.write((const char*)out.data(), out.size());
+	fout.close();
+
 	return 0;
 }

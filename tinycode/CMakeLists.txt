@@ -3,6 +3,11 @@ project(tinycode)
 
 set(CMAKE_CXX_STANDARD 20)
 
+add_compile_options(-Wno-ambiguous-reversed-operator)
+add_compile_options(-Wno-deprecated-declarations)
+add_compile_options(-Wno-unused-parameter)
+add_compile_options(-Wno-extern-initializer)
+
 # ZXing for QR codes
 set(BUILD_EXAMPLES OFF)
 set(BUILD_BLACKBOX_TESTS OFF)
@@ -24,12 +29,20 @@ execute_process(
 execute_process(COMMAND ninja WORKING_DIRECTORY ${SKIA_CMAKE_DIR})
 
 # Binaryen for webassembly
-set(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-set(CMAKE_CXX_FLAGS "-Wno-deprecated")
-set(BUILD_TESTS OFF)
-set(BUILD_STATIC_LIB ON)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/binaryen ${CMAKE_CURRENT_BINARY_DIR}/third_party/binaryen)
-set(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
+set(BINARYEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/binaryen)
+set(CMAKE_CXX_STANDARD 17)
+set(BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
+set(BUILD_STATIC_LIB ON CACHE INTERNAL "" FORCE)
+set(BUILD_TOOLS OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(${BINARYEN_DIR} ${CMAKE_CURRENT_BINARY_DIR}/third_party/binaryen)
+set(CMAKE_CXX_STANDARD 20)
+
+# wasm3 for the Webassembly runtime
+set(wasm3_includes
+	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm3/source
+	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm3/platforms/cpp/wasm3_cpp/include
+)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm3/source ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasm3)
 
 set(tinycode_SOURCES
 	src/main.cpp
@@ -40,13 +53,14 @@ set(tinycode_SOURCES
 	src/debug.cpp
 	src/export.cpp
 	src/import.cpp
+	src/wasm.cpp
 )
 
 add_library(tinycode STATIC ${tinycode_SOURCES})
 set_target_properties(tinycode PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_options(tinycode PRIVATE -Wall -Wextra)
 
-include_directories(${ZXING_INCLUDE_DIRS} ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode)
+include_directories(${ZXING_INCLUDE_DIRS} ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode ${BINARYEN_DIR}/src ${wasm3_includes})
 
-target_link_libraries(tinycode PUBLIC ZXing ${SKIA_LINK}/skia.lib gdi32 opengl32)
+target_link_libraries(tinycode PUBLIC ZXing ${SKIA_LINK}/skia.lib binaryen m3 gdi32 opengl32)
 target_include_directories(tinycode PUBLIC include)

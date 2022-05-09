@@ -7,3 +7,6 @@
 [submodule "third_party/binaryen"]
 	path = third_party/binaryen
 	url = https://github.com/TheGreatRambler/binaryen
+[submodule "third_party/wasm3"]
+	path = third_party/wasm3
+	url = https://github.com/wasm3/wasm3

@@ -125,6 +125,10 @@ namespace TinyCode {
 		std::vector<std::string> instructions;
 	};
 
+	namespace Wasm {
+		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out);
+	}
+
 	namespace Export {
 		void GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path);
 	}
