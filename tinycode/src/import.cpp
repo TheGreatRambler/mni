@@ -46,8 +46,7 @@ namespace TinyCode {
 			}
 
 			auto raw_bytes = result.rawBytes();
-			// Output from QR code is shifted by 20 bits
-			TinyCode::Encoding::CopyOver(raw_bytes, result.numBits() - 24, 20, bytes, 0);
+			std::copy(raw_bytes.begin() + 4, raw_bytes.end(), std::back_inserter(bytes));
 		}
 	}
 }

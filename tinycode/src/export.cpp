@@ -30,7 +30,7 @@ namespace TinyCode {
 
 			ZXing::QRCode::Writer writer;
 			writer.setMargin(margin_size);
-			writer.setEncoding(ZXing::CharacterSet::Unknown);
+			writer.setEncoding(ZXing::CharacterSet::BINARY);
 			writer.setErrorCorrectionLevel(ZXing::QRCode::ErrorCorrectionLevel::Low);
 
 			std::wstring output(bytes.begin(), bytes.end());

@@ -4,6 +4,8 @@
 
 #include <cmath>
 #include <cstdint>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace TinyCode {
@@ -126,7 +128,8 @@ namespace TinyCode {
 	};
 
 	namespace Wasm {
-		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out);
+		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names);
+		void Execute(std::vector<uint8_t>& wasm);
 	}
 
 	namespace Export {
