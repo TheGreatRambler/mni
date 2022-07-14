@@ -4,14 +4,25 @@
 
 namespace TinyCode {
 	namespace Decoding {
+		uint64_t ReadDataHeader(Encoding::DataHeader& header, std::vector<uint8_t>& bytes) {
+			uint64_t current_bit = 0;
+			int64_t size;
+			current_bit = ReadNumUnsigned(&size, 16, current_bit, bytes);
+			header.size = size;
+			// Resize given buffer to size just read
+			// https://stackoverflow.com/a/9194117
+			bytes.resize((current_bit + (size + 7) & ~7) >> 3);
+			return current_bit;
+		}
+
 		uint64_t ReadNum(int64_t* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			bool is_negative = (bytes[current_bit >> 3] << (current_bit % 8)) & 0b10000000;
-			current_bit++;
+			bool is_negative;
+			current_bit = Read1Bit(&is_negative, current_bit, bytes);
 
 			int64_t out = 0;
 			while(bit_size != 0) {
 				out <<= 1;
-				out |= ((bytes[current_bit >> 3] << (current_bit % 8)) & 0b10000000 ? 0x1 : 0x0);
+				out |= (bytes[current_bit >> 3] << (current_bit % 8) & 0b10000000 ? 0x1 : 0x0);
 
 				current_bit++;
 				bit_size--;
@@ -30,7 +41,7 @@ namespace TinyCode {
 			int64_t out = 0;
 			while(bit_size != 0) {
 				out <<= 1;
-				out |= ((bytes[current_bit >> 3] << (current_bit % 8)) & 0b10000000 ? 0x1 : 0x0);
+				out |= (bytes[current_bit >> 3] << (current_bit % 8) & 0b10000000 ? 0x1 : 0x0);
 
 				current_bit++;
 				bit_size--;
@@ -55,6 +66,51 @@ namespace TinyCode {
 		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			*bit_out = bytes[current_bit >> 3] << (current_bit % 8) & 0b10000000;
 			return current_bit + 1;
+		}
+
+		uint64_t ReadLEB(int64_t* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			bool is_negative;
+			current_bit            = Read1Bit(&is_negative, current_bit, bytes);
+			*num_out               = 0;
+			uint8_t current_offset = 0;
+			while(true) {
+				int64_t part;
+				current_bit = ReadNumUnsigned(&part, multiple_bits, current_bit, bytes);
+				*num_out |= part << current_offset;
+				current_offset += multiple_bits;
+
+				bool is_done;
+				current_bit = Read1Bit(&is_done, current_bit, bytes);
+				if(is_done) {
+					break;
+				}
+			}
+
+			if(is_negative) {
+				*num_out *= -1;
+			}
+
+			return current_bit;
+		}
+
+		uint64_t ReadLEBUnsigned(
+			int64_t* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			*num_out               = 0;
+			uint8_t current_offset = 0;
+			while(true) {
+				int64_t part;
+				current_bit = ReadNumUnsigned(&part, multiple_bits, current_bit, bytes);
+				*num_out |= (part << current_offset);
+				current_offset += multiple_bits;
+
+				bool is_done;
+				current_bit = Read1Bit(&is_done, current_bit, bytes);
+				if(is_done) {
+					break;
+				}
+			}
+
+			return current_bit;
 		}
 
 		uint64_t ReadHuffmanHeader(TinyCode::Tree::Node* root, uint64_t current_bit, std::vector<uint8_t>& bytes) {
@@ -90,26 +146,51 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		uint64_t ReadHuffmanList(TinyCode::Tree::Node* root, std::vector<int64_t>& data_out, int64_t data_size,
-			uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			TinyCode::Tree::Node* current_root = root;
-			int64_t read_integers              = 0;
-			while(read_integers != data_size) {
-				if(current_root->left == NULL && current_root->right == NULL) {
+		uint64_t ReadHuffmanValue(
+			TinyCode::Tree::Node* root, int64_t* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			while(true) {
+				if(root->left == NULL && root->right == NULL) {
 					// Leaf with data
-					data_out.push_back(current_root->data);
-					read_integers++;
-					current_root = root;
+					*num_out = root->data;
+					return current_bit;
 				} else {
 					// Still reading path
 					bool direction;
 					current_bit = Read1Bit(&direction, current_bit, bytes);
 					if(direction) {
-						current_root = current_root->right;
+						root = root->right;
 					} else {
-						current_root = current_root->left;
+						root = root->left;
 					}
 				}
+			}
+		}
+
+		uint64_t ReadHuffmanList(TinyCode::Tree::Node* root, std::vector<int64_t>& data_out, int64_t data_size,
+			uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			for(int i = 0; i < data_size; i++) {
+				int64_t num;
+				ReadHuffmanValue(root, &num, current_bit, bytes);
+				data_out.push_back(num);
+			}
+
+			return current_bit;
+		}
+
+		uint64_t ReadLEBIntegerList(std::vector<int64_t>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			int64_t list_size;
+			current_bit = ReadLEBUnsigned(&list_size, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+			bool every_element_positive;
+			current_bit = Read1Bit(&every_element_positive, current_bit, bytes);
+
+			for(uint64_t i = 0; i < list_size; i++) {
+				int64_t num;
+				if(every_element_positive) {
+					current_bit = ReadLEBUnsigned(&num, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+				} else {
+					current_bit = ReadLEB(&num, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+				}
+				data_out.push_back(num);
 			}
 
 			return current_bit;

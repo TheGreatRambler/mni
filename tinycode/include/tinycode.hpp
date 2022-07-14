@@ -9,51 +9,30 @@
 #include <vector>
 
 namespace TinyCode {
-	namespace Instructions {
-		class Instruction {
-		public:
-			Instruction();
-			virtual bool HandleBit(uint8_t bit);
-			virtual std::string GetString();
-		};
-
-		class Variable : Instruction {
-		public:
-			bool HandleBit(uint8_t bit);
-			std::string GetString();
-
-		private:
-			enum State : uint8_t {
-				NAME,
-				SIZE,
-				IS_TAGGED,
-				TAG,
-				VALUE,
-			};
-
-			enum DataSize : uint8_t {};
-
-			State state { State::NAME };
-			uint8_t current_bit { 0 };
-			uint64_t number { 0 };
-			uint8_t counter { 0 };
-
-			uint8_t variable_name;
-			uint8_t variable_size;
-			int64_t variable_value;
-		};
-	}
-
 	namespace Encoding {
-		void FixLastByte(uint64_t current_bit, std::vector<uint8_t>& bytes);
-		void CopyOver(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest,
-			uint64_t dest_offset);
+		struct DataHeader {
+			uint16_t size;
+			// TODO consider adding type
+		};
+
+		static constexpr uint8_t DEFAULT_LEB_MULTIPLE = 7;
+
+		uint64_t AddDataHeader(uint64_t current_bit, std::vector<uint8_t>& bytes, DataHeader header);
+		void CopyOverSrcOffset(
+			std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest);
+		void CopyOverDestOffset(
+			std::vector<uint8_t>& src, uint64_t size, std::vector<uint8_t>& dest, uint64_t dest_offset);
 		uint8_t GetRequiredBits(int64_t num);
+		uint8_t GetRequiredLEBBits(int64_t num, uint8_t multiple_bits);
 		uint64_t WriteNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t WriteNumUnsigned(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t WriteTaggedNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t WriteTaggedNumUnsigned(
 			int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t Write1Bit(bool bit, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t WriteLEB(int64_t num, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t WriteLEBUnsigned(
+			int64_t num, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
 
 		enum IntegerListEncodingType : uint8_t {
 			FIXED        = 0,
@@ -74,11 +53,12 @@ namespace TinyCode {
 		uint64_t WriteHuffmanHeader(std::vector<int64_t> data,
 			std::unordered_map<int64_t, TinyCode::Tree::NodeRepresentation>& rep_map, uint64_t current_bit,
 			std::vector<uint8_t>& bytes);
-
-		// Cache hashing is modulo 2^(cache bits)
-
+		uint64_t WriteHuffmanHeader(std::unordered_map<int64_t, TinyCode::Tree::NodeRepresentation>& rep_map,
+			uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t WriteLEBIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t WriteSimpleIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t WriteHuffmanIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t MoveBits(uint64_t start, uint64_t end, uint64_t new_start, std::vector<uint8_t>& bytes);
 
 		// Handles 4 different encoding types
 		static constexpr uint8_t LIST_TYPE_BITS = 2;
@@ -98,14 +78,23 @@ namespace TinyCode {
 	}
 
 	namespace Decoding {
+		static constexpr uint8_t DEFAULT_LEB_MULTIPLE = 7;
+
+		uint64_t ReadDataHeader(Encoding::DataHeader& header, std::vector<uint8_t>& bytes);
 		uint64_t ReadNum(int64_t* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadNumUnsigned(int64_t* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadTaggedNum(int64_t* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadTaggedNumUnsigned(int64_t* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadLEB(int64_t* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadLEBUnsigned(
+			int64_t* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadHuffmanHeader(TinyCode::Tree::Node* root, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadHuffmanValue(
+			TinyCode::Tree::Node* root, int64_t* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadHuffmanList(TinyCode::Tree::Node* root, std::vector<int64_t>& data_out, int64_t data_size,
 			uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadLEBIntegerList(std::vector<int64_t>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadSimpleIntegerList(
 			std::vector<int64_t>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadHuffmanIntegerList(
@@ -114,7 +103,8 @@ namespace TinyCode {
 
 	namespace Debug {
 		std::string Print(uint64_t size, std::vector<uint8_t>& bytes, bool with_delimiter);
-		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes, bool with_delimiter);
+		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes);
+		std::string PrintAsCArray(std::vector<uint8_t>& bytes);
 		bool AreIdentical(std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size);
 	}
 
@@ -129,7 +119,10 @@ namespace TinyCode {
 
 	namespace Wasm {
 		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names);
+		uint64_t OptimizeTiny(std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names,
+			uint64_t current_bit, std::vector<uint8_t>& bytes);
 		void Execute(std::vector<uint8_t>& wasm);
+		void FuzzTest();
 	}
 
 	namespace Export {

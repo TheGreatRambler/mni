@@ -6,4 +6,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(tinycode)
 add_subdirectory(main)
-add_custom_target(tinycode_all ALL DEPENDS main)
+add_subdirectory(test)
+add_custom_target(tinycode_all ALL DEPENDS main test)

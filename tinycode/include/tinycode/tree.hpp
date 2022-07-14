@@ -37,6 +37,9 @@ namespace TinyCode {
 		};
 
 		template <typename T> void PrintTree(Node* root, std::string str);
+		void GenerateHuffman(std::vector<int64_t> data, std::unordered_map<int64_t, NodeRepresentation>& rep_map);
+		void GenerateHuffmanFrequencies(
+			std::unordered_map<int64_t, Node>& frequencies, std::unordered_map<int64_t, NodeRepresentation>& rep_map);
 		void BuildRepresentation(
 			Node* root, NodeRepresentation rep, std::unordered_map<int64_t, NodeRepresentation>& rep_map);
 		void BuildRepresentation(Node* root, std::unordered_map<int64_t, NodeRepresentation>& rep_map);

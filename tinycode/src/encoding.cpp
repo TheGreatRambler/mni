@@ -9,22 +9,19 @@
 
 namespace TinyCode {
 	namespace Encoding {
-		void FixLastByte(uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			uint8_t remainder = current_bit % 8;
-
-			if(remainder != 0) {
-				// Shift last byte to the left
-				bytes[bytes.size() - 1] <<= (8 - remainder);
-			}
+		uint64_t AddDataHeader(uint64_t current_bit, std::vector<uint8_t>& bytes, DataHeader header) {
+			// Header goes at beginning
+			std::vector<uint8_t> output_header;
+			WriteNumUnsigned(header.size, 16, 0, output_header);
+			bytes.insert(bytes.begin(), output_header.begin(), output_header.end());
+			return current_bit + output_header.size() * 8;
 		}
 
-		void CopyOver(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest,
-			uint64_t dest_offset) {
-			// TODO handle dest_offset, current optimizations are based around this being 0
-			uint64_t dest_current_bit = 0;
-			uint64_t src_current_bit  = src_offset;
-			uint8_t offset_modulo     = src_offset % 8;
-			uint8_t offset_inverse    = 8 - offset_modulo;
+		void CopyOverSrcOffset(
+			std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest) {
+			uint64_t src_current_bit = src_offset;
+			uint8_t offset_modulo    = src_offset % 8; //  & 7 is goated with the sauce
+			uint8_t offset_inverse   = 8 - offset_modulo;
 
 			do {
 				if(offset_modulo == 0) {
@@ -43,52 +40,22 @@ namespace TinyCode {
 			return std::bit_width<uint64_t>(std::abs(num));
 		}
 
+		uint8_t GetRequiredLEBBits(int64_t num, uint8_t multiple_bits) {
+			uint8_t required_bits = GetRequiredBits(num);
+			return std::ceil(required_bits / (float)multiple_bits) * (multiple_bits + 1);
+		}
+
 		uint64_t WriteNum(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			int64_t num_to_write = std::abs(num) << (64 - bit_size);
-			bool sign_set        = false;
-			while(bit_size != 0) {
-				if(current_bit % 8 == 0) {
-					if(bytes.size() <= (current_bit >> 3)) {
-						bytes.push_back(0);
-					}
-				} else {
-					bytes[current_bit >> 3] <<= 1;
-				}
-
-				if(sign_set) {
-					// Check whether most significant bit is set
-					bytes[current_bit >> 3] |= (num_to_write & (1ULL << 63) ? 0x1 : 0x0);
-
-					num_to_write <<= 1;
-					bit_size--;
-				} else {
-					bytes[current_bit >> 3] |= (num < 0 ? 0x1 : 0x0);
-					sign_set = true;
-				}
-
-				current_bit++;
-			}
-
-			return current_bit;
+			current_bit = Write1Bit(num < 0, current_bit, bytes);
+			return WriteNumUnsigned(std::abs(num), bit_size, current_bit, bytes);
 		}
 
 		uint64_t WriteNumUnsigned(int64_t num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			int64_t num_to_write = num << (64 - bit_size);
 			while(bit_size != 0) {
-				if(current_bit % 8 == 0) {
-					if(bytes.size() <= (current_bit >> 3)) {
-						bytes.push_back(0);
-					}
-				} else {
-					bytes[current_bit >> 3] <<= 1;
-				}
-
-				// Check whether most significant bit is set
-				bytes[current_bit >> 3] |= (num_to_write & (1ULL << 63) ? 0x1 : 0x0);
-
+				current_bit = Write1Bit(num_to_write & (1ULL << 63), current_bit, bytes);
 				num_to_write <<= 1;
 				bit_size--;
-				current_bit++;
 			}
 
 			return current_bit;
@@ -105,35 +72,56 @@ namespace TinyCode {
 			return WriteNumUnsigned(num, bit_size, current_bit, bytes);
 		}
 
+		uint64_t Write1Bit(bool bit, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			if(bytes.size() <= (current_bit >> 3)) {
+				bytes.resize((current_bit >> 3) + 1);
+			}
+
+			bytes[current_bit >> 3] ^= (-!!bit ^ bytes[current_bit >> 3]) & (0b10000000 >> (current_bit % 8));
+			return current_bit + 1;
+		}
+
+		uint64_t WriteLEB(int64_t num, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			current_bit          = Write1Bit(num < 0, current_bit, bytes);
+			num                  = std::abs(num);
+			int8_t required_bits = GetRequiredBits(num);
+			while(required_bits >= 0) {
+				const uint64_t mask = (1UL << multiple_bits) - 1;
+				current_bit         = WriteNumUnsigned(num & mask, multiple_bits, current_bit, bytes);
+				num >>= multiple_bits;
+				required_bits -= multiple_bits;
+
+				current_bit = Write1Bit(required_bits < 0, current_bit, bytes);
+			}
+			return current_bit;
+		}
+
+		uint64_t WriteLEBUnsigned(
+			int64_t num, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			int8_t required_bits = GetRequiredBits(num);
+			while(required_bits > 0) {
+				const uint64_t mask = (1UL << multiple_bits) - 1;
+				current_bit         = WriteNumUnsigned(num & mask, multiple_bits, current_bit, bytes);
+				num >>= multiple_bits;
+				required_bits -= multiple_bits;
+
+				current_bit = Write1Bit(required_bits <= 0, current_bit, bytes);
+			}
+			return current_bit;
+		}
+
 		uint64_t WriteHuffmanHeader(std::vector<int64_t> data,
 			std::unordered_map<int64_t, TinyCode::Tree::NodeRepresentation>& rep_map, uint64_t current_bit,
 			std::vector<uint8_t>& bytes) {
-			std::unordered_map<int64_t, TinyCode::Tree::Node> element_frequencies;
+			TinyCode::Tree::GenerateHuffman(data, rep_map);
+			return WriteHuffmanHeader(rep_map, current_bit, bytes);
+		}
 
-			for(int64_t num : data) {
-				if(element_frequencies.count(num)) {
-					element_frequencies[num].freq++;
-				} else {
-					element_frequencies[num] = TinyCode::Tree::Node(num, 1);
-				}
-			}
-
-			std::vector<TinyCode::Tree::Node> element_frequencies_list;
-
-			for(auto& element : element_frequencies) {
-				element_frequencies_list.push_back(element.second);
-			}
-
-			TinyCode::Tree::Node* root = TinyCode::Tree::BuildHuffman(element_frequencies_list);
-			// TinyCode::Tree::PrintTree<char>(root, "");
-			TinyCode::Tree::BuildRepresentation(root, rep_map);
-			TinyCode::Tree::FreeTree(root);
-
+		uint64_t WriteHuffmanHeader(std::unordered_map<int64_t, TinyCode::Tree::NodeRepresentation>& rep_map,
+			uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			std::vector<int64_t> element_list;
 			std::vector<TinyCode::Tree::NodeRepresentation> representation_list;
 			for(auto& element : rep_map) {
-				// std::cout << (char)element.first << " has representation bit size "
-				//		  << (int)element.second->representation.bit_size << std::endl;
 				element_list.push_back(element.first);
 				representation_list.push_back(element.second);
 			}
@@ -141,12 +129,33 @@ namespace TinyCode {
 			current_bit = WriteSimpleIntegerList(element_list, current_bit, bytes);
 
 			for(int i = 0; i < element_list.size(); i++) {
-				auto& rep = representation_list[i];
-				// std::string rep_string = std::bitset<64>(rep.representation).to_string();
-				// std::cout << (char)element_list[i] << ": " << rep_string.substr(rep_string.size() - rep.bit_size)
-				//		  << std::endl;
+				auto& rep   = representation_list[i];
 				current_bit = WriteNumUnsigned(rep.bit_size, 6, current_bit, bytes);
 				current_bit = WriteNumUnsigned(rep.representation, rep.bit_size, current_bit, bytes);
+			}
+
+			return current_bit;
+		}
+
+		uint64_t WriteLEBIntegerList(std::vector<int64_t> data, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			bool every_element_positive = true;
+			for(int64_t num : data) {
+				if(num < 0) {
+					every_element_positive = false;
+				}
+			}
+
+			// List size
+			current_bit = WriteLEBUnsigned(data.size(), DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+			// Whether every element is positive
+			current_bit = Write1Bit(every_element_positive, current_bit, bytes);
+
+			for(int64_t num : data) {
+				if(every_element_positive) {
+					current_bit = WriteLEBUnsigned(num, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+				} else {
+					current_bit = WriteLEB(num, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+				}
 			}
 
 			return current_bit;
@@ -203,17 +212,17 @@ namespace TinyCode {
 				total_bits_required_delta_fixed += data.size();
 			}
 
-			std::cout << "Fixed is " << (int)total_bits_required_fixed << std::endl;
-			std::cout << "Tagged is " << (int)total_bits_required_tagged << std::endl;
-			std::cout << "Delta fixed is " << (int)total_bits_required_delta_fixed << std::endl;
-			std::cout << "Delta tagged is " << (int)total_bits_required_delta_tagged << std::endl;
+			// std::cout << "Fixed is " << (int)total_bits_required_fixed << std::endl;
+			// std::cout << "Tagged is " << (int)total_bits_required_tagged << std::endl;
+			// std::cout << "Delta fixed is " << (int)total_bits_required_delta_fixed << std::endl;
+			// std::cout << "Delta tagged is " << (int)total_bits_required_delta_tagged << std::endl;
 
 			uint64_t min_bits = std::min(std::min(total_bits_required_fixed, total_bits_required_tagged),
 				std::min(total_bits_required_delta_fixed, total_bits_required_delta_tagged));
 
 			if(min_bits == total_bits_required_fixed) {
-				std::cout << "Chosen fixed with " << (int)min_bits << std::endl;
-				// List type
+				// std::cout << "Chosen fixed with " << (int)min_bits << std::endl;
+				//  List type
 				current_bit = WriteNumUnsigned(IntegerListEncodingType::FIXED, LIST_TYPE_BITS, current_bit, bytes);
 				// List size
 				current_bit = WriteNumUnsigned(data.size(), LIST_SIZE_BITS, current_bit, bytes);
@@ -231,8 +240,8 @@ namespace TinyCode {
 					}
 				}
 			} else if(min_bits == total_bits_required_tagged) {
-				std::cout << "Chosen tagged with " << (int)min_bits << std::endl;
-				// List type
+				// std::cout << "Chosen tagged with " << (int)min_bits << std::endl;
+				//  List type
 				current_bit = WriteNumUnsigned(IntegerListEncodingType::TAGGED, LIST_TYPE_BITS, current_bit, bytes);
 				// List size
 				current_bit = WriteNumUnsigned(data.size(), LIST_SIZE_BITS, current_bit, bytes);
@@ -250,8 +259,8 @@ namespace TinyCode {
 					}
 				}
 			} else if(min_bits == total_bits_required_delta_fixed) {
-				std::cout << "Chosen delta fixed with " << (int)min_bits << std::endl;
-				// List type
+				// std::cout << "Chosen delta fixed with " << (int)min_bits << std::endl;
+				//  List type
 				current_bit
 					= WriteNumUnsigned(IntegerListEncodingType::DELTA_FIXED, LIST_TYPE_BITS, current_bit, bytes);
 				// List size
@@ -273,8 +282,8 @@ namespace TinyCode {
 					last_num = num;
 				}
 			} else if(min_bits == total_bits_required_delta_tagged) {
-				std::cout << "Chosen delta tagged with " << (int)min_bits << std::endl;
-				// List type
+				// std::cout << "Chosen delta tagged with " << (int)min_bits << std::endl;
+				//  List type
 				current_bit
 					= WriteNumUnsigned(IntegerListEncodingType::DELTA_TAGGED, LIST_TYPE_BITS, current_bit, bytes);
 				// List size
@@ -387,6 +396,92 @@ namespace TinyCode {
 							last_num = num;
 						}
 						*/
+		}
+
+		uint64_t MoveBits(uint64_t start, uint64_t end, uint64_t new_start, std::vector<uint8_t>& bytes) {
+			auto size = end - start;
+
+			if(new_start > start) {
+				if(bytes.size() <= ((new_start + size) >> 3)) {
+					bytes.resize(((new_start + size) >> 3) + 1);
+				}
+
+				// Overengineered, was not faster
+				/*
+				uint64_t src  = start + size;
+				uint64_t dest = new_start + size;
+
+				if(src % 8 != 0) {
+					uint8_t b = bytes[src >> 3] >> (8 - src % 8) & ((1UL << (src % 8)) - 1);
+
+					if(dest % 8 == 0) {
+						bytes[(dest >> 3) - 1] &= 0xFF << (src % 8);
+						bytes[(dest >> 3) - 1] |= b;
+					} else if(dest % 8 >= src % 8) {
+						bytes[dest >> 3] &= ~(((1UL << (src % 8)) - 1) << (8 - dest % 8));
+						bytes[dest >> 3] |= b << (8 - dest % 8);
+					} else {
+						bytes[dest >> 3] &= ((1UL << (8 - dest % 8)) - 1);
+						bytes[dest >> 3] |= b << (8 - dest % 8);
+						bytes[(dest >> 3) - 1] &= 0xFF << (src % 8 - dest % 8);
+						bytes[(dest >> 3) - 1] |= b >> (dest % 8);
+					}
+
+					dest -= src % 8;
+					src -= src % 8;
+				}
+
+				// Destination bitmasks
+				const uint8_t dest_bits_right         = dest % 8;
+				const uint8_t dest_mask_right_noshift = ((1UL << dest_bits_right) - 1);
+				const uint8_t dest_mask_right         = dest_mask_right_noshift << (8 - dest_bits_right);
+				const uint8_t dest_mask_left          = (1UL << (8 - dest_bits_right)) - 1;
+
+				while(src - start != 0) {
+					uint8_t b = bytes[(src >> 3) - 1];
+
+					if(src - start > 8) {
+						bytes[dest >> 3] &= dest_mask_left;
+						bytes[dest >> 3] |= b << (8 - dest_bits_right);
+						bytes[(dest >> 3) - 1] &= dest_mask_right;
+						bytes[(dest >> 3) - 1] |= b >> dest_bits_right & dest_mask_left;
+						src -= 8;
+						dest -= 8;
+					} else {
+						if(dest % 8 == 0) {
+							uint8_t mask = 0xFF << (src - start);
+							bytes[(dest >> 3) - 1] &= mask;
+							bytes[(dest >> 3) - 1] |= b & ((1UL << (src - start)) - 1);
+						} else if(dest % 8 >= src - start) {
+							uint8_t mask = ~(((1UL << (src - start)) - 1) << (8 - dest % 8));
+							bytes[dest >> 3] &= mask;
+							bytes[dest >> 3] |= (b & ((1UL << (src - start)) - 1)) << (8 - dest % 8);
+						} else {
+							bytes[dest >> 3] &= dest_mask_left;
+							bytes[dest >> 3] |= b << (8 - dest_bits_right);
+							bytes[(dest >> 3) - 1] &= 0xFF << (src - start - dest % 8);
+							bytes[(dest >> 3) - 1] |= b >> (dest % 8) & ((1UL << (src - start - dest % 8)) - 1);
+						}
+
+						break;
+					}
+				}
+				*/
+
+				for(uint64_t i = size; i > 0; i--) {
+					bool bit;
+					Decoding::Read1Bit(&bit, start + i - 1, bytes);
+					Write1Bit(bit, new_start + i - 1, bytes);
+				}
+			} else if(new_start < start) {
+				for(uint64_t i = 0; i < size; i++) {
+					bool bit;
+					Decoding::Read1Bit(&bit, start + i, bytes);
+					Write1Bit(bit, new_start + i, bytes);
+				}
+			}
+
+			return new_start + size;
 		}
 	}
 }

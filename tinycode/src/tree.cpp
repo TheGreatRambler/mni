@@ -19,6 +19,32 @@ namespace TinyCode {
 			PrintTree<T>(root->right, str + "1");
 		}
 
+		void GenerateHuffman(std::vector<int64_t> data, std::unordered_map<int64_t, NodeRepresentation>& rep_map) {
+			std::unordered_map<int64_t, Node> element_frequencies;
+			for(int64_t num : data) {
+				if(element_frequencies.count(num)) {
+					element_frequencies[num].freq++;
+				} else {
+					element_frequencies[num] = Node(num, 1);
+				}
+			}
+
+			GenerateHuffmanFrequencies(element_frequencies, rep_map);
+		}
+
+		void GenerateHuffmanFrequencies(
+			std::unordered_map<int64_t, Node>& frequencies, std::unordered_map<int64_t, NodeRepresentation>& rep_map) {
+			std::vector<Node> element_frequencies_list;
+
+			for(auto& element : frequencies) {
+				element_frequencies_list.push_back(element.second);
+			}
+
+			Node* root = BuildHuffman(element_frequencies_list);
+			BuildRepresentation(root, rep_map);
+			FreeTree(root);
+		}
+
 		void BuildRepresentation(
 			Node* root, NodeRepresentation rep, std::unordered_map<int64_t, NodeRepresentation>& rep_map) {
 			if(!root) {

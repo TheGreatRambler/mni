@@ -8,6 +8,10 @@ add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-unused-parameter)
 add_compile_options(-Wno-extern-initializer)
 
+if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
+	add_link_options(-g -O0)
+endif()
+
 # ZXing for QR codes
 set(BUILD_EXAMPLES OFF)
 set(BUILD_BLACKBOX_TESTS OFF)
@@ -45,15 +49,15 @@ set(wasm3_includes
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm3/source ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasm3)
 
 set(tinycode_SOURCES
-	src/main.cpp
 	src/encoding.cpp
 	src/decoding.cpp
 	src/tree.cpp
-	src/variable.cpp
 	src/debug.cpp
 	src/export.cpp
 	src/import.cpp
 	src/wasm.cpp
+	src/wasm/io.cpp
+	src/wasm/parser.cpp
 )
 
 add_library(tinycode STATIC ${tinycode_SOURCES})

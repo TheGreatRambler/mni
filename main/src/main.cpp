@@ -10,6 +10,7 @@
 #include <iostream>
 #include <istream>
 #include <numeric>
+#include <random>
 #include <vector>
 
 #include "fmt/core.h"
@@ -44,7 +45,6 @@ void testImages() {
 	current_bit          = TinyCode::Encoding::WriteNumUnsigned(4, 8, current_bit, bytes);
 	current_bit          = TinyCode::Encoding::WriteNumUnsigned(0, 8, current_bit, bytes);
 	current_bit          = TinyCode::Encoding::WriteHuffmanIntegerList(image_input, current_bit, bytes);
-	TinyCode::Encoding::FixLastByte(current_bit, bytes);
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	fmt::print(
@@ -74,7 +74,7 @@ void testImages() {
 	stbi_image_free(img);
 }
 
-int main(int, char*[]) {
+void testQRCode() {
 	// auto start = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> data2;
 	// for(int i = 0; i < 100000; i++) {
@@ -115,11 +115,12 @@ int main(int, char*[]) {
 	std::vector<uint8_t> out;
 
 	TinyCode::Wasm::Optimize(fileContents, out, { "_Z15readable_stringv" });
-	TinyCode::Wasm::Execute(out);
 
 	std::ofstream fout("test2.wasm", std::ios::out | std::ios::binary);
 	fout.write((const char*)out.data(), out.size());
 	fout.close();
+
+	TinyCode::Wasm::Execute(out);
 
 	// std::vector<int64_t> data(test.begin(), test.end());
 	std::vector<int64_t> data(out.begin(), out.end());
@@ -127,15 +128,18 @@ int main(int, char*[]) {
 	std::vector<uint8_t> bytes;
 	uint64_t current_bit = 0;
 	current_bit          = TinyCode::Encoding::WriteSimpleIntegerList(data, current_bit, bytes);
-	TinyCode::Encoding::FixLastByte(current_bit, bytes);
 
+	TinyCode::Encoding::DataHeader header;
+	header.size = current_bit;
+	current_bit = TinyCode::Encoding::AddDataHeader(current_bit, bytes, header);
 	std::cout << "Huffman " << (int)current_bit << std::endl;
 	std::cout << TinyCode::Debug::Print(current_bit, bytes, false) << std::endl;
-
 	TinyCode::Export::GenerateQRCode(current_bit, bytes, 1000, 1000, "qrcode.png");
 
 	std::vector<uint8_t> bytes2;
 	TinyCode::Import::ScanQRCode(bytes2, "qrcode.png");
+	TinyCode::Encoding::DataHeader header2;
+	uint64_t header_size = TinyCode::Decoding::ReadDataHeader(header2, bytes2);
 	std::cout << TinyCode::Debug::Print(current_bit, bytes2, false) << std::endl;
 
 	if(TinyCode::Debug::AreIdentical(bytes, bytes2, current_bit)) {
@@ -143,12 +147,13 @@ int main(int, char*[]) {
 	}
 
 	data2.clear();
-	TinyCode::Decoding::ReadSimpleIntegerList(data2, 0, bytes2);
+	TinyCode::Decoding::ReadSimpleIntegerList(data2, header_size, bytes2);
 
 	// for(int64_t num : data2) {
 	//	std::cout << "    " << (int)num << std::endl;
 	//}
 
+	std::cout << "Testing vectors equal" << std::endl;
 	if(std::equal(data.begin(), data.end(), data2.begin())) {
 		std::cout << "Vectors equal!" << std::endl;
 	}
@@ -160,6 +165,12 @@ int main(int, char*[]) {
 	// fmt::print("Encoding and decoding took {} milliseconds\n",
 	//	std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
 	// testImages();
+}
+
+int main(int, char*[]) {
+	testQRCode();
+
+	// TinyCode::Wasm::FuzzTest();
 
 	return 0;
 }

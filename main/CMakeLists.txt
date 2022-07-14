@@ -3,6 +3,10 @@ project(main)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
+	add_link_options(-g -O0)
+endif()
+
 add_executable(main ${APPLICATION_TYPE}
 	src/main.cpp
 	src/fmt/format.cpp
