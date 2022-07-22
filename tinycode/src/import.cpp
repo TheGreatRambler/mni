@@ -36,9 +36,8 @@ namespace TinyCode {
 			ZXing::DecodeHints qrHints;
 			qrHints.setFormats(ZXing::BarcodeFormat::QR_CODE);
 
-			ZXing::Result result = ZXing::ReadBarcode(
-				{ (uint8_t*)bitmap.pixmap().addr(), bitmap.width(), bitmap.height(), ZXing::ImageFormat::BGRX },
-				qrHints);
+			ZXing::Result result
+				= ZXing::ReadBarcode({ (uint8_t*)bitmap.pixmap().addr(), bitmap.width(), bitmap.height(), ZXing::ImageFormat::BGRX }, qrHints);
 			ZXing::DecodeStatus qrStatus = result.status();
 
 			if(qrStatus != ZXing::DecodeStatus::NoError) {

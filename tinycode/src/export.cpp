@@ -37,9 +37,8 @@ namespace TinyCode {
 			auto matrix = writer.encode(output, 1, 1);
 
 			SkBitmap bitmap;
-			bitmap.allocPixels(
-				SkImageInfo::Make(matrix.width() * pixel_size, matrix.height() * pixel_size + bottom_margin,
-					SkColorType::kRGB_888x_SkColorType, SkAlphaType::kOpaque_SkAlphaType),
+			bitmap.allocPixels(SkImageInfo::Make(matrix.width() * pixel_size, matrix.height() * pixel_size + bottom_margin,
+								   SkColorType::kRGB_888x_SkColorType, SkAlphaType::kOpaque_SkAlphaType),
 				0);
 
 			SkCanvas canvas(bitmap);
@@ -51,8 +50,7 @@ namespace TinyCode {
 			for(int y = 0; y < matrix.height(); y++) {
 				for(int x = 0; x < matrix.width(); x++) {
 					if(matrix.get(x, y)) {
-						canvas.drawRect(
-							SkRect::MakeXYWH(x * pixel_size, y * pixel_size, pixel_size, pixel_size), pixel_paint);
+						canvas.drawRect(SkRect::MakeXYWH(x * pixel_size, y * pixel_size, pixel_size, pixel_size), pixel_paint);
 					}
 				}
 			}

@@ -23,10 +23,9 @@ namespace TinyCode {
 		}
 
 		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes) {
-			constexpr char hexmap[]
-				= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-			uint64_t current_size = 0;
-			std::string output    = "{";
+			constexpr char hexmap[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+			uint64_t current_size   = 0;
+			std::string output      = "{";
 			for(uint8_t byte : bytes) {
 				if(current_size >= size)
 					break;

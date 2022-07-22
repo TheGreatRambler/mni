@@ -13,7 +13,6 @@
 #include <ir/table-utils.h>
 #include <m3_env.h>
 #include <pass.h>
-#include <tinycode/wasm/io.hpp>
 #include <tools/optimization-options.h>
 #include <wasm-binary.h>
 #include <wasm-debug.h>
@@ -25,8 +24,7 @@
 
 // Finds all reachable functions in wasm module
 // Based on https://github.com/WebAssembly/binaryen/blob/5881b541a4b276dcd5576aa065e4fb860531fc7b/src/ast_utils.h#L73
-class DirectCallGraphAnalyzer
-	: public wasm::PostWalker<DirectCallGraphAnalyzer, wasm::Visitor<DirectCallGraphAnalyzer>> {
+class DirectCallGraphAnalyzer : public wasm::PostWalker<DirectCallGraphAnalyzer, wasm::Visitor<DirectCallGraphAnalyzer>> {
 public:
 	DirectCallGraphAnalyzer(wasm::Module& module, const std::vector<wasm::Function*>& root)
 		: module(module) {
@@ -62,8 +60,7 @@ private:
 
 namespace TinyCode {
 	namespace Wasm {
-		void OptimizeInternal(
-			wasm::Module& wasm, std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names) {
+		void OptimizeInternal(wasm::Module& wasm, std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names) {
 			wasm::WasmBinaryBuilder parser(wasm, wasm.features, (std::vector<char>&)in);
 			parser.setDebugInfo(false);
 			parser.setDWARF(false);
@@ -164,8 +161,8 @@ namespace TinyCode {
 			std::copy(output_buffer.begin(), output_buffer.end(), std::back_inserter(out));
 		}
 
-		uint64_t OptimizeTiny(std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names,
-			uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		uint64_t OptimizeTiny(
+			std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			wasm::Module wasm;
 			OptimizeInternal(wasm, in, kept_names);
 
@@ -254,9 +251,8 @@ namespace TinyCode {
 			};
 
 			bool READ_COMPARE = std::filesystem::exists("moduleCompare.bin");
-			std::fstream moduleCompare("moduleCompare.bin", READ_COMPARE
-																? (std::ios::in | std::ios::binary)
-																: (std::ios::out | std::ios::trunc | std::ios::binary));
+			std::fstream moduleCompare(
+				"moduleCompare.bin", READ_COMPARE ? (std::ios::in | std::ios::binary) : (std::ios::out | std::ios::trunc | std::ios::binary));
 
 			int64_t cumulativeTime = 0;
 
@@ -270,8 +266,7 @@ namespace TinyCode {
 				try {
 					wasm::Module wasm;
 					std::ifstream testFile("test.wasm", std::ios::binary);
-					std::vector<char> fileContents(
-						(std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
+					std::vector<char> fileContents((std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
 
 					auto start = std::chrono::high_resolution_clock::now();
 					wasm::WasmBinaryBuilder parser(wasm, wasm.features, fileContents);

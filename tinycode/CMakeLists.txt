@@ -56,13 +56,12 @@ set(tinycode_SOURCES
 	src/export.cpp
 	src/import.cpp
 	src/wasm.cpp
-	src/wasm/io.cpp
 	src/wasm/parser.cpp
 )
 
 add_library(tinycode STATIC ${tinycode_SOURCES})
 set_target_properties(tinycode PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_compile_options(tinycode PRIVATE -Wall -Wextra)
+target_compile_options(tinycode PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-braces)
 
 include_directories(${ZXING_INCLUDE_DIRS} ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode ${BINARYEN_DIR}/src ${wasm3_includes})
 
