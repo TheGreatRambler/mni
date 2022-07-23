@@ -524,6 +524,7 @@ namespace TinyCode {
 			uint32_t version = io.ReadU32();
 
 			std::vector<WasmItem*> items;
+			size_t item_idx = 0;
 
 			ParsingMode mode = READ_NORMAL;
 
@@ -553,9 +554,15 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmLimit* item = (WasmLimit*)items[item_idx];
+					current_bit     = TinyCode::Encoding::WriteNumUnsigned(item->flags, 3, current_bit, bytes);
+					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->minimum, 5, current_bit, bytes);
+					if(item->flags == 1) {
+						current_bit = TinyCode::Encoding::WriteLEBUnsigned(item->maximum, 5, current_bit, bytes);
+					}
 				} break;
 				}
+				return Limits { 0, 0 };
 			};
 
 			auto HandleType = [&]() {
@@ -572,9 +579,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmType* item = (WasmType*)items[item_idx];
+					current_bit    = TinyCode::Encoding::WriteLEB(item->type, 5, current_bit, bytes);
 				} break;
 				}
+				return 0;
 			};
 
 			auto HandleIndexedType = [&]() {
@@ -591,9 +600,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmIndexedType* item = (WasmIndexedType*)items[item_idx];
+					current_bit           = TinyCode::Encoding::WriteLEBUnsigned(item->type, 5, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			auto HandleTable = [&]() {
@@ -615,9 +626,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					// Competely ignore
+					(void)0;
 				} break;
 				}
+				return (uint8_t)0;
 			};
 
 			auto HandleGlobal = [&]() {
@@ -639,45 +652,41 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmMemoryOp* item = (WasmMemoryOp*)items[item_idx];
+					current_bit        = TinyCode::Encoding::WriteLEBUnsigned(item->align, 5, current_bit, bytes);
+					current_bit        = TinyCode::Encoding::WriteLEBUnsigned(item->offset, 5, current_bit, bytes);
 				} break;
 				}
 			};
 
-			auto HandleInstruction = [&]() {
-				switch(mode) {
-				case READ_NORMAL: {
-					uint8_t code = io.ReadU8();
-					items.push_back(new WasmInstruction { { INSTRUCTION }, code });
-					return code;
-				} break;
-				case WRITE_NORMAL: {
+			uint8_t last_instruction = wasm::BinaryConsts::Unreachable;
+			auto HandleInstruction   = [&]() {
+                switch(mode) {
+                case READ_NORMAL: {
+                    uint8_t code = io.ReadU8();
+                    items.push_back(new WasmInstruction { { INSTRUCTION }, code });
+                    last_instruction = code;
+                    return code;
+                } break;
+                case WRITE_NORMAL: {
 
-				} break;
-				case READ_OPTIMIZED: {
+                } break;
+                case READ_OPTIMIZED: {
 
-				} break;
-				case WRITE_OPTIMIZED: {
-
-				} break;
-				}
-			};
-
-			auto LastInstruction = [&]() {
-				switch(mode) {
-				case READ_NORMAL: {
-					return io.LastU8();
-				} break;
-				case WRITE_NORMAL: {
-
-				} break;
-				case READ_OPTIMIZED: {
-
-				} break;
-				case WRITE_OPTIMIZED: {
-
-				} break;
-				}
+                } break;
+                case WRITE_OPTIMIZED: {
+                    WasmInstruction* item = (WasmInstruction*)items[item_idx];
+                    // if(!instruction_count.contains(item->node)) {
+                    //	instruction_count[item->node] = 1;
+                    // } else {
+                    //	instruction_count[item->node]++;
+                    // }
+                    //   std::cout << "Instruction " << (int)item->node << std::endl;
+                    //   TODO
+                    current_bit = TinyCode::Encoding::WriteNumUnsigned(item->node, 8, current_bit, bytes);
+                } break;
+                }
+                return (uint8_t)0;
 			};
 
 			auto HandleBreak = [&]() {
@@ -694,9 +703,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmBreak* item = (WasmBreak*)items[item_idx];
+					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->offset, 5, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			auto HandleNum = [&]() {
@@ -713,9 +724,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmNumber* item = (WasmNumber*)items[item_idx];
+					current_bit      = TinyCode::Encoding::WriteLEBUnsigned(item->num, 5, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			auto HandleIndex = [&](WasmItemType type) {
@@ -732,9 +745,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmIndex* item = (WasmIndex*)items[item_idx];
+					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->index, 5, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			auto HandleI32 = [&]() {
@@ -751,9 +766,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmI32* item = (WasmI32*)items[item_idx];
+					current_bit   = TinyCode::Encoding::WriteLEB(item->literal, 5, current_bit, bytes);
 				} break;
 				}
+				return 0;
 			};
 
 			auto HandleI64 = [&]() {
@@ -770,9 +787,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmI64* item = (WasmI64*)items[item_idx];
+					current_bit   = TinyCode::Encoding::WriteLEB(item->literal, 5, current_bit, bytes);
 				} break;
 				}
+				return (int64_t)0;
 			};
 
 			auto HandleF32 = [&]() {
@@ -789,9 +808,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmF32* item = (WasmF32*)items[item_idx];
+					current_bit   = TinyCode::Encoding::WriteFloat(item->literal, 0, current_bit, bytes);
 				} break;
 				}
+				return 0.0f;
 			};
 
 			auto HandleF64 = [&]() {
@@ -808,9 +829,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmF64* item = (WasmF64*)items[item_idx];
+					current_bit   = TinyCode::Encoding::WriteDouble(item->literal, 0, current_bit, bytes);
 				} break;
 				}
+				return 0.0;
 			};
 
 			auto HandleInstruction32 = [&]() {
@@ -827,9 +850,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmInstruction32* item = (WasmInstruction32*)items[item_idx];
+					current_bit             = TinyCode::Encoding::WriteLEBUnsigned(item->node, 7, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			auto HandleAtomicOrder = [&]() {
@@ -846,9 +871,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmAtomicOrder* item = (WasmAtomicOrder*)items[item_idx];
+					current_bit           = TinyCode::Encoding::WriteLEBUnsigned(item->order, 2, current_bit, bytes);
 				} break;
 				}
+				return (uint8_t)0;
 			};
 
 			auto HandleSegment = [&]() {
@@ -865,9 +892,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmSegment* item = (WasmSegment*)items[item_idx];
+					current_bit       = TinyCode::Encoding::WriteLEBUnsigned(item->segment, 5, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			auto HandleMemory = [&]() {
@@ -875,6 +904,7 @@ namespace TinyCode {
 				case READ_NORMAL: {
 					uint8_t memory_idx = io.ReadU8();
 					items.push_back(new WasmMemory { { MEMORY }, memory_idx });
+					return memory_idx;
 				} break;
 				case WRITE_NORMAL: {
 
@@ -883,9 +913,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					// Ignore, currently always 0
+					(void)0;
 				} break;
 				}
+				return (uint8_t)0;
 			};
 
 			auto HandleV128 = [&]() {
@@ -904,7 +936,8 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					// TODO large number that is hard to store
+					(void)0;
 				} break;
 				}
 			};
@@ -923,9 +956,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmLane* item = (WasmLane*)items[item_idx];
+					current_bit    = TinyCode::Encoding::WriteLEBUnsigned(item->lane, 2, current_bit, bytes);
 				} break;
 				}
+				return (uint8_t)0;
 			};
 
 			auto HandleSize = [&]() {
@@ -942,9 +977,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmSize* item = (WasmSize*)items[item_idx];
+					current_bit    = TinyCode::Encoding::WriteLEBUnsigned(item->size, 7, current_bit, bytes);
 				} break;
 				}
+				return (uint32_t)0;
 			};
 
 			struct Section {
@@ -966,9 +1003,12 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmSection* item = (WasmSection*)items[item_idx];
+					current_bit       = TinyCode::Encoding::WriteNumUnsigned(item->id, 5, current_bit, bytes);
+					current_bit       = TinyCode::Encoding::WriteLEBUnsigned(item->size, 7, current_bit, bytes);
 				} break;
 				}
+				return Section { 0, 0 };
 			};
 
 			auto HandleString = [&]() {
@@ -985,9 +1025,13 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmString* item = (WasmString*)items[item_idx];
+					current_bit      = TinyCode::Encoding::WriteLEBUnsigned(item->str.size(), 5, current_bit, bytes);
+					std::vector<uint8_t> str_vec(item->str.begin(), item->str.end());
+					current_bit = TinyCode::Encoding::CopyBits(0, item->str.size() * 8, current_bit, str_vec, bytes);
 				} break;
 				}
+				return std::string();
 			};
 
 			auto HandleExternal = [&]() {
@@ -1004,9 +1048,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmExternal* item = (WasmExternal*)items[item_idx];
+					current_bit        = TinyCode::Encoding::WriteNumUnsigned(item->external, 4, current_bit, bytes);
 				} break;
 				}
+				return (uint8_t)0;
 			};
 
 			auto HandleFlags = [&](uint8_t bits) {
@@ -1023,9 +1069,11 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmFlags* item = (WasmFlags*)items[item_idx];
+					current_bit     = TinyCode::Encoding::WriteNumUnsigned(item->flags, item->num_bits, current_bit, bytes);
 				} break;
 				}
+				return (uint8_t)0;
 			};
 
 			auto HandleSlice = [&](size_t size) {
@@ -1042,9 +1090,12 @@ namespace TinyCode {
 
 				} break;
 				case WRITE_OPTIMIZED: {
-
+					WasmData* item = (WasmData*)items[item_idx];
+					current_bit    = TinyCode::Encoding::WriteLEBUnsigned(item->data.size(), 5, current_bit, bytes);
+					current_bit    = TinyCode::Encoding::CopyBits(0, item->data.size() * 8, current_bit, item->data, bytes);
 				} break;
 				}
+				return std::vector<uint8_t>();
 			};
 
 			std::function<void()> HandleInstructions = [&]() {
@@ -1062,7 +1113,7 @@ namespace TinyCode {
 						case wasm::BinaryConsts::If:
 							HandleType();
 							HandleInstructions();
-							if(LastInstruction() == wasm::BinaryConsts::Else) {
+							if(last_instruction == wasm::BinaryConsts::Else) {
 								HandleInstructions();
 							}
 							break;
@@ -1486,131 +1537,91 @@ namespace TinyCode {
 			// std::unordered_map<uint8_t, size_t> instruction_count;
 
 			// Check binaryen src/passes/Print.cpp
+			mode = WRITE_OPTIMIZED;
 			for(size_t i = 0; i < items.size(); i++) {
-				// Iterate through our tokens and transform them
-				WasmItem* item_old = items[i];
-				switch(item_old->type) {
-				case NUM: {
-					WasmNumber* item = (WasmNumber*)item_old;
-					current_bit      = TinyCode::Encoding::WriteLEBUnsigned(item->num, 5, current_bit, bytes);
-				} break;
-				case SIZE: {
-					WasmSize* item = (WasmSize*)item_old;
-					current_bit    = TinyCode::Encoding::WriteLEBUnsigned(item->size, 7, current_bit, bytes);
-				} break;
-				case SECTION: {
-					WasmSection* item = (WasmSection*)item_old;
-					current_bit       = TinyCode::Encoding::WriteNumUnsigned(item->id, 5, current_bit, bytes);
-					current_bit       = TinyCode::Encoding::WriteLEBUnsigned(item->size, 7, current_bit, bytes);
-				} break;
-				case STRING: {
-					// TODO
-					WasmString* item = (WasmString*)item_old;
-					current_bit      = TinyCode::Encoding::WriteLEBUnsigned(item->str.size(), 5, current_bit, bytes);
-					std::vector<uint8_t> str_vec(item->str.begin(), item->str.end());
-					current_bit = TinyCode::Encoding::CopyBits(0, item->str.size() * 8, current_bit, str_vec, bytes);
-				} break;
-				case TYPE: {
-					WasmType* item = (WasmType*)item_old;
-					current_bit    = TinyCode::Encoding::WriteLEB(item->type, 5, current_bit, bytes);
-				} break;
-				case INDEXED_TYPE: {
-					WasmIndexedType* item = (WasmIndexedType*)item_old;
-					current_bit           = TinyCode::Encoding::WriteLEBUnsigned(item->type, 5, current_bit, bytes);
-				} break;
-				case LIMIT: {
-					WasmLimit* item = (WasmLimit*)item_old;
-					current_bit     = TinyCode::Encoding::WriteNumUnsigned(item->flags, 3, current_bit, bytes);
-					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->minimum, 5, current_bit, bytes);
-					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->maximum, 5, current_bit, bytes);
-				} break;
-				case MEMORY_OP: {
-					WasmMemoryOp* item = (WasmMemoryOp*)item_old;
-					current_bit        = TinyCode::Encoding::WriteLEBUnsigned(item->align, 5, current_bit, bytes);
-					current_bit        = TinyCode::Encoding::WriteLEBUnsigned(item->offset, 5, current_bit, bytes);
-				} break;
-				case INSTRUCTION: {
-					WasmInstruction* item = (WasmInstruction*)item_old;
-					// if(!instruction_count.contains(item->node)) {
-					//	instruction_count[item->node] = 1;
-					// } else {
-					//	instruction_count[item->node]++;
-					// }
-					//   std::cout << "Instruction " << (int)item->node << std::endl;
-					//   TODO
-					current_bit = TinyCode::Encoding::WriteNumUnsigned(item->node, 8, current_bit, bytes);
-				} break;
-				case INSTRUCTION32: {
-					WasmInstruction32* item = (WasmInstruction32*)item_old;
-					current_bit             = TinyCode::Encoding::WriteLEBUnsigned(item->node, 7, current_bit, bytes);
-				} break;
-				case ATTRIBUTE: {
-					// Competely ignore
-					(void)0;
-				} break;
-				case BREAK: {
-					WasmBreak* item = (WasmBreak*)item_old;
-					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->offset, 5, current_bit, bytes);
-				} break;
+				switch(items[i]->type) {
+				case NUM:
+					HandleNum();
+					break;
+				case SIZE:
+					HandleSize();
+					break;
+				case SECTION:
+					HandleSection();
+					break;
+				case STRING:
+					HandleString();
+					break;
+				case TYPE:
+					HandleType();
+					break;
+				case INDEXED_TYPE:
+					HandleIndexedType();
+					break;
+				case LIMIT:
+					HandleLimits();
+					break;
+				case MEMORY_OP:
+					HandleMemoryOp();
+					break;
+				case INSTRUCTION:
+					HandleInstruction();
+					break;
+				case INSTRUCTION32:
+					HandleInstruction32();
+					break;
+				case ATTRIBUTE:
+					HandleAttribute();
+					break;
+				case BREAK:
+					HandleBreak();
+					break;
 				case FUNCTION:
 				case TABLE:
 				case LOCAL:
 				case GLOBAL:
 				case TAG:
-				case STRUCT: {
-					WasmIndex* item = (WasmIndex*)item_old;
-					current_bit     = TinyCode::Encoding::WriteLEBUnsigned(item->index, 5, current_bit, bytes);
-				} break;
-				case I32: {
-					WasmI32* item = (WasmI32*)item_old;
-					current_bit   = TinyCode::Encoding::WriteLEB(item->literal, 5, current_bit, bytes);
-				} break;
-				case I64: {
-					WasmI64* item = (WasmI64*)item_old;
-					current_bit   = TinyCode::Encoding::WriteLEB(item->literal, 5, current_bit, bytes);
-				} break;
-				case I128: {
-					// TODO handle v128
-					(void)0;
-				} break;
-				case F32: {
-					WasmF32* item = (WasmF32*)item_old;
-					current_bit   = TinyCode::Encoding::WriteFloat(item->literal, 0, current_bit, bytes);
-				} break;
-				case F64: {
-					WasmF64* item = (WasmF64*)item_old;
-					current_bit   = TinyCode::Encoding::WriteDouble(item->literal, 0, current_bit, bytes);
-				} break;
-				case ATOMIC_ORDER: {
-					WasmAtomicOrder* item = (WasmAtomicOrder*)item_old;
-					current_bit           = TinyCode::Encoding::WriteLEBUnsigned(item->order, 2, current_bit, bytes);
-				} break;
-				case SEGMENT: {
-					WasmSegment* item = (WasmSegment*)item_old;
-					current_bit       = TinyCode::Encoding::WriteLEBUnsigned(item->segment, 5, current_bit, bytes);
-				} break;
-				case MEMORY: {
-					// Ignore, currently always 0
-					(void)0;
-				} break;
-				case LANE: {
-					WasmLane* item = (WasmLane*)item_old;
-					current_bit    = TinyCode::Encoding::WriteLEBUnsigned(item->lane, 2, current_bit, bytes);
-				} break;
-				case EXTERNAL: {
-					WasmExternal* item = (WasmExternal*)item_old;
-					current_bit        = TinyCode::Encoding::WriteNumUnsigned(item->external, 4, current_bit, bytes);
-				} break;
-				case FLAGS: {
-					WasmFlags* item = (WasmFlags*)item_old;
-					current_bit     = TinyCode::Encoding::WriteNumUnsigned(item->flags, item->num_bits, current_bit, bytes);
-				} break;
-				case DATA: {
-					WasmData* item = (WasmData*)item_old;
-					current_bit    = TinyCode::Encoding::WriteLEBUnsigned(item->data.size(), 5, current_bit, bytes);
-					current_bit    = TinyCode::Encoding::CopyBits(0, item->data.size() * 8, current_bit, item->data, bytes);
-				} break;
+				case STRUCT:
+					HandleIndex(items[i]->type);
+					break;
+				case I32:
+					HandleI32();
+					break;
+				case I64:
+					HandleI64();
+					break;
+				case I128:
+					HandleV128();
+					break;
+				case F32:
+					HandleF32();
+					break;
+				case F64:
+					HandleF64();
+					break;
+				case ATOMIC_ORDER:
+					HandleAtomicOrder();
+					break;
+				case SEGMENT:
+					HandleSegment();
+					break;
+				case MEMORY:
+					HandleMemory();
+					break;
+				case LANE:
+					HandleLane();
+					break;
+				case EXTERNAL:
+					HandleExternal();
+					break;
+				case FLAGS:
+					HandleFlags(0);
+					break;
+				case DATA:
+					HandleSlice(0);
+					break;
 				}
+				item_idx++;
 			}
 
 			// std::cout << "Instruction counts:" << std::endl;
