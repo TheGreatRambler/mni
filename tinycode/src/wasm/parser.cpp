@@ -511,6 +511,13 @@ namespace TinyCode {
 			std::vector<uint8_t> data;
 		};
 
+		enum ParsingMode {
+			READ_NORMAL,
+			WRITE_NORMAL,
+			READ_OPTIMIZED,
+			WRITE_OPTIMIZED,
+		};
+
 		uint64_t WasmToOptimized(std::vector<uint8_t> wasm_bytes, uint64_t current_bit, std::vector<uint8_t> bytes) {
 			IO io(wasm_bytes);
 			uint32_t magic   = io.ReadU32();
@@ -518,109 +525,579 @@ namespace TinyCode {
 
 			std::vector<WasmItem*> items;
 
+			ParsingMode mode = READ_NORMAL;
+
 			struct Limits {
 				uint64_t minimum;
 				uint64_t maximum;
 			};
-			auto ReadLimits = [&]() {
-				uint8_t flags    = io.ReadU8();
-				uint64_t minimum = 0;
-				uint64_t maximum = 0;
-				if(flags == 0) {
-					minimum = io.ReadULEB();
-				} else if(flags == 1) {
-					minimum = io.ReadULEB();
-					maximum = io.ReadULEB();
+			auto HandleLimits = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t flags    = io.ReadU8();
+					uint64_t minimum = 0;
+					uint64_t maximum = 0;
+					if(flags == 0) {
+						minimum = io.ReadULEB();
+					} else if(flags == 1) {
+						minimum = io.ReadULEB();
+						maximum = io.ReadULEB();
+					}
+					items.push_back(new WasmLimit { { LIMIT }, flags, minimum, maximum });
+					return Limits { minimum, maximum };
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
 				}
-				items.push_back(new WasmLimit { { LIMIT }, flags, minimum, maximum });
-				return Limits { minimum, maximum };
 			};
 
-			auto ReadValType = [&]() {
-				int32_t type = io.ReadLEB();
-				items.push_back(new WasmType { { TYPE }, type });
-				return type;
+			auto HandleType = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					int32_t type = io.ReadLEB();
+					items.push_back(new WasmType { { TYPE }, type });
+					return type;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
 			};
 
-			auto ReadTable = [&]() {
-				int32_t type  = ReadValType();
-				Limits limits = ReadLimits();
+			auto HandleIndexedType = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t indexed_type = io.ReadULEB();
+					items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+					return indexed_type;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
 			};
 
-			auto ReadGlobal = [&]() {
-				int32_t type       = ReadValType();
-				uint8_t mutability = io.ReadU8();
-				items.push_back(new WasmAttribute { { ATTRIBUTE }, mutability });
+			auto HandleTable = [&]() {
+				int32_t type  = HandleType();
+				Limits limits = HandleLimits();
 			};
 
-			auto ReadMemoryOp = [&]() {
-				uint64_t align  = io.ReadULEB();
-				uint64_t offset = io.ReadULEB();
-				items.push_back(new WasmMemoryOp { { MEMORY_OP }, align, offset });
+			auto HandleAttribute = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t attribute = io.ReadU8();
+					items.push_back(new WasmAttribute { { ATTRIBUTE }, attribute });
+					return attribute;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
 			};
 
-			std::function<void()> ReadInstructions = [&]() {
-				while(true) {
+			auto HandleGlobal = [&]() {
+				int32_t type      = HandleType();
+				uint8_t attribute = HandleAttribute();
+			};
+
+			auto HandleMemoryOp = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint64_t align  = io.ReadULEB();
+					uint64_t offset = io.ReadULEB();
+					items.push_back(new WasmMemoryOp { { MEMORY_OP }, align, offset });
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleInstruction = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
 					uint8_t code = io.ReadU8();
 					items.push_back(new WasmInstruction { { INSTRUCTION }, code });
+					return code;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto LastInstruction = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					return io.LastU8();
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleBreak = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t break_offset = io.ReadULEB();
+					items.push_back(new WasmBreak { { BREAK }, break_offset });
+					return break_offset;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleNum = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t num = io.ReadULEB();
+					items.push_back(new WasmNumber { { NUM }, num });
+					return num;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleIndex = [&](WasmItemType type) {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t idx = io.ReadULEB();
+					items.push_back(new WasmIndex { { type }, idx });
+					return idx;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleI32 = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					int32_t literal = io.ReadLEB();
+					items.push_back(new WasmI32 { { I32 }, literal });
+					return literal;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleI64 = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					int64_t literal = io.ReadLEB();
+					items.push_back(new WasmI64 { { I64 }, literal });
+					return literal;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleF32 = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					float literal = io.ReadFloat32();
+					items.push_back(new WasmF32 { { F32 }, literal });
+					return literal;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleF64 = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					double literal = io.ReadFloat64();
+					items.push_back(new WasmF64 { { F64 }, literal });
+					return literal;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleInstruction32 = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t code = io.ReadULEB();
+					items.push_back(new WasmInstruction32 { { INSTRUCTION32 }, code });
+					return code;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleAtomicOrder = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t order = io.ReadULEB();
+					items.push_back(new WasmAtomicOrder { { ATOMIC_ORDER }, order });
+					return order;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleSegment = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t segment_idx = io.ReadULEB();
+					items.push_back(new WasmSegment { { SEGMENT }, segment_idx });
+					return segment_idx;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleMemory = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t memory_idx = io.ReadU8();
+					items.push_back(new WasmMemory { { MEMORY }, memory_idx });
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleV128 = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint64_t lower = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16) | (io.ReadU8() << 24) | (io.ReadU8() << 32)
+									 | (io.ReadU8() << 40) | (io.ReadU8() << 48) | (io.ReadU8() << 56);
+					uint64_t upper = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16) | (io.ReadU8() << 24) | (io.ReadU8() << 32)
+									 | (io.ReadU8() << 40) | (io.ReadU8() << 48) | (io.ReadU8() << 56);
+					items.push_back(new WasmI128 { { I128 }, lower, upper });
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleLane = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t lane = io.ReadU8();
+					items.push_back(new WasmLane { { LANE }, lane });
+					return lane;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleSize = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint32_t size = io.ReadULEB();
+					items.push_back(new WasmSize { { SIZE }, size });
+					return size;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			struct Section {
+				uint8_t id;
+				size_t len;
+			};
+			auto HandleSection = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t section_id = io.ReadU8();
+					size_t section_len = io.ReadULEB();
+					items.push_back(new WasmSection { { SECTION }, section_id, section_len });
+					return Section { section_id, section_len };
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleString = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					std::string str = io.ReadString();
+					items.push_back(new WasmString { { STRING }, str });
+					return str;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleExternal = [&]() {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t external = io.ReadU8();
+					items.push_back(new WasmExternal { { EXTERNAL }, external });
+					return external;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleFlags = [&](uint8_t bits) {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t flags = io.ReadU8();
+					items.push_back(new WasmFlags { { FLAGS }, flags, bits });
+					return flags;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			auto HandleSlice = [&](size_t size) {
+				switch(mode) {
+				case READ_NORMAL: {
+					auto slice = io.ReadSlice(size);
+					items.push_back(new WasmData { { DATA }, slice });
+					return slice;
+				} break;
+				case WRITE_NORMAL: {
+
+				} break;
+				case READ_OPTIMIZED: {
+
+				} break;
+				case WRITE_OPTIMIZED: {
+
+				} break;
+				}
+			};
+
+			std::function<void()> HandleInstructions = [&]() {
+				while(true) {
+					uint8_t code = HandleInstruction();
 					if(code == wasm::BinaryConsts::End || code == wasm::BinaryConsts::Else) {
 						return;
 					} else {
 						switch(code) {
 						case wasm::BinaryConsts::Block:
 						case wasm::BinaryConsts::Loop:
-							ReadValType();
-							ReadInstructions();
+							HandleType();
+							HandleInstructions();
 							break;
 						case wasm::BinaryConsts::If:
-							ReadValType();
-							ReadInstructions();
-							if(io.LastU8() == wasm::BinaryConsts::Else) {
-								ReadInstructions();
+							HandleType();
+							HandleInstructions();
+							if(LastInstruction() == wasm::BinaryConsts::Else) {
+								HandleInstructions();
 							}
 							break;
 						case wasm::BinaryConsts::Br:
 						case wasm::BinaryConsts::BrIf: {
-							uint32_t break_offset = io.ReadULEB();
-							items.push_back(new WasmBreak { { BREAK }, break_offset });
+							HandleBreak();
 						} break;
 						case wasm::BinaryConsts::BrTable: {
-							uint32_t num_break_offsets = io.ReadULEB();
-							items.push_back(new WasmNumber { { NUM }, num_break_offsets });
+							uint32_t num_break_offsets = HandleNum();
 							for(int i = 0; i < num_break_offsets; i++) {
-								uint32_t break_offset = io.ReadULEB();
-								items.push_back(new WasmBreak { { BREAK }, break_offset });
+								HandleBreak();
 							}
-							uint32_t default_break_offset = io.ReadULEB();
-							items.push_back(new WasmBreak { { BREAK }, default_break_offset });
+							uint32_t default_break_offset = HandleBreak();
 						} break;
 						case wasm::BinaryConsts::CallFunction: {
-							uint32_t func_idx = io.ReadULEB();
-							items.push_back(new WasmIndex { { FUNCTION }, func_idx });
+							HandleIndex(FUNCTION);
 						} break;
 						case wasm::BinaryConsts::CallIndirect: {
-							uint32_t indexed_type = io.ReadULEB();
-							items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
-							uint32_t table_idx = io.ReadULEB();
-							items.push_back(new WasmIndex { { TABLE }, table_idx });
+							HandleIndexedType();
+							HandleIndex(TABLE);
 						} break;
 						case wasm::BinaryConsts::SelectWithType: {
-							uint32_t num_types = io.ReadULEB();
-							items.push_back(new WasmNumber { { NUM }, num_types });
+							uint32_t num_types = HandleNum();
 							for(int i = 0; i < num_types; i++) {
-								ReadValType();
+								HandleType();
 							}
 						} break;
 						case wasm::BinaryConsts::LocalGet:
 						case wasm::BinaryConsts::LocalSet:
 						case wasm::BinaryConsts::LocalTee: {
-							uint32_t local_idx = io.ReadULEB();
-							items.push_back(new WasmIndex { { LOCAL }, local_idx });
+							HandleIndex(LOCAL);
 						} break;
 						case wasm::BinaryConsts::GlobalGet:
 						case wasm::BinaryConsts::GlobalSet: {
-							uint32_t global_idx = io.ReadULEB();
-							items.push_back(new WasmIndex { { GLOBAL }, global_idx });
+							HandleIndex(GLOBAL);
 						} break;
 						case wasm::BinaryConsts::I32LoadMem:
 						case wasm::BinaryConsts::I64LoadMem:
@@ -645,39 +1122,32 @@ namespace TinyCode {
 						case wasm::BinaryConsts::I64StoreMem8:
 						case wasm::BinaryConsts::I64StoreMem16:
 						case wasm::BinaryConsts::I64StoreMem32:
-							ReadMemoryOp();
+							HandleMemoryOp();
 							break;
 						case wasm::BinaryConsts::MemorySize:
 						case wasm::BinaryConsts::MemoryGrow: {
-							uint8_t attribute = io.ReadU8();
-							items.push_back(new WasmAttribute { { ATTRIBUTE }, attribute });
+							HandleAttribute();
 						} break;
 						case wasm::BinaryConsts::I32Const: {
-							int32_t literal = io.ReadLEB();
-							items.push_back(new WasmI32 { { I32 }, literal });
+							HandleI32();
 						} break;
 						case wasm::BinaryConsts::I64Const: {
-							int64_t literal = io.ReadLEB();
-							items.push_back(new WasmI64 { { I64 }, literal });
+							HandleI64();
 						} break;
 						case wasm::BinaryConsts::F32Const: {
-							float literal = io.ReadFloat32();
-							items.push_back(new WasmF32 { { F32 }, literal });
+							HandleF32();
 						} break;
 						case wasm::BinaryConsts::F64Const: {
-							double literal = io.ReadFloat64();
-							items.push_back(new WasmF64 { { F64 }, literal });
+							HandleF64();
 						} break;
-						case wasm::BinaryConsts::RefNull:
-							ReadValType();
-							break;
+						case wasm::BinaryConsts::RefNull: {
+							HandleType();
+						} break;
 						case wasm::BinaryConsts::RefFunc: {
-							uint32_t func_idx = io.ReadULEB();
-							items.push_back(new WasmIndex { { FUNCTION }, func_idx });
+							HandleIndex(FUNCTION);
 						} break;
 						case wasm::BinaryConsts::AtomicPrefix: {
-							uint32_t code2 = io.ReadULEB();
-							items.push_back(new WasmInstruction32 { { INSTRUCTION32 }, code2 });
+							uint32_t code2 = HandleInstruction32();
 
 							switch(code2) {
 							case wasm::BinaryConsts::I32AtomicLoad8U:
@@ -697,66 +1167,54 @@ namespace TinyCode {
 							case wasm::BinaryConsts::I32AtomicWait:
 							case wasm::BinaryConsts::I64AtomicWait:
 							case wasm::BinaryConsts::AtomicNotify:
-								ReadMemoryOp();
+								HandleMemoryOp();
 								break;
 							case wasm::BinaryConsts::AtomicFence:
-								uint8_t order = io.ReadULEB();
-								items.push_back(new WasmAtomicOrder { { ATOMIC_ORDER }, order });
+								HandleAtomicOrder();
 								break;
 							}
 
 							if(code2 > wasm::BinaryConsts::AtomicRMWOps_Begin && code2 < wasm::BinaryConsts::AtomicRMWOps_End) {
 								// Includes a range of atomic RMW instructions
-								ReadMemoryOp();
+								HandleMemoryOp();
 							}
 
 							if(code2 > wasm::BinaryConsts::AtomicCmpxchgOps_Begin && code2 < wasm::BinaryConsts::AtomicCmpxchgOps_End) {
 								// Includes a range of CMP instructions
-								ReadMemoryOp();
+								HandleMemoryOp();
 							}
 						} break;
 						case wasm::BinaryConsts::MiscPrefix: {
-							uint32_t code2 = io.ReadULEB();
-							items.push_back(new WasmInstruction32 { { INSTRUCTION32 }, code2 });
+							uint32_t code2 = HandleInstruction32();
 
 							switch(code2) {
 							case wasm::BinaryConsts::MemoryInit:
 							case wasm::BinaryConsts::DataDrop: {
-								uint32_t segment_idx = io.ReadULEB();
-								items.push_back(new WasmSegment { { SEGMENT }, segment_idx });
+								HandleSegment();
 							} break;
 							case wasm::BinaryConsts::MemoryCopy: {
-								uint8_t memory_src_idx = io.ReadU8();
-								items.push_back(new WasmMemory { { MEMORY }, memory_src_idx });
-								uint8_t memory_dest_idx = io.ReadU8();
-								items.push_back(new WasmMemory { { MEMORY }, memory_dest_idx });
+								HandleMemory();
+								HandleMemory();
 							} break;
 							case wasm::BinaryConsts::MemoryFill: {
-								uint8_t memory_idx = io.ReadU8();
-								items.push_back(new WasmMemory { { MEMORY }, memory_idx });
+								HandleMemory();
 							} break;
 							case wasm::BinaryConsts::TableSize:
 							case wasm::BinaryConsts::TableGrow: {
-								uint32_t table_idx = io.ReadULEB();
-								items.push_back(new WasmIndex { { TABLE }, table_idx });
+								HandleIndex(TABLE);
 							} break;
 							}
 						} break;
 						case wasm::BinaryConsts::SIMDPrefix: {
-							uint32_t code2 = io.ReadULEB();
-							items.push_back(new WasmInstruction32 { { INSTRUCTION32 }, code2 });
+							uint32_t code2 = HandleInstruction32();
 
 							switch(code2) {
 							case wasm::BinaryConsts::V128Const: {
-								uint64_t lower = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16) | (io.ReadU8() << 24) | (io.ReadU8() << 32)
-												 | (io.ReadU8() << 40) | (io.ReadU8() << 48) | (io.ReadU8() << 56);
-								uint64_t upper = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16) | (io.ReadU8() << 24) | (io.ReadU8() << 32)
-												 | (io.ReadU8() << 40) | (io.ReadU8() << 48) | (io.ReadU8() << 56);
-								items.push_back(new WasmI128 { { I128 }, lower, upper });
+								HandleV128();
 							} break;
 							case wasm::BinaryConsts::V128Store:
 							case wasm::BinaryConsts::V128Load:
-								ReadMemoryOp();
+								HandleMemoryOp();
 								break;
 							case wasm::BinaryConsts::I8x16ExtractLaneS:
 							case wasm::BinaryConsts::I8x16ExtractLaneU:
@@ -773,8 +1231,7 @@ namespace TinyCode {
 							case wasm::BinaryConsts::F32x4ReplaceLane:
 							case wasm::BinaryConsts::F64x2ReplaceLane:
 							case wasm::BinaryConsts::I8x16Shuffle: {
-								uint8_t lane = io.ReadU8();
-								items.push_back(new WasmLane { { LANE }, lane });
+								HandleLane();
 							} break;
 							case wasm::BinaryConsts::V128Load8Lane:
 							case wasm::BinaryConsts::V128Load16Lane:
@@ -784,15 +1241,13 @@ namespace TinyCode {
 							case wasm::BinaryConsts::V128Store16Lane:
 							case wasm::BinaryConsts::V128Store32Lane:
 							case wasm::BinaryConsts::V128Store64Lane: {
-								ReadMemoryOp();
-								uint8_t lane = io.ReadU8();
-								items.push_back(new WasmLane { { LANE }, lane });
+								HandleMemoryOp();
+								HandleLane();
 							} break;
 							}
 						} break;
 						case wasm::BinaryConsts::GCPrefix: {
-							uint32_t code2 = io.ReadULEB();
-							items.push_back(new WasmInstruction32 { { INSTRUCTION32 }, code2 });
+							uint32_t code2 = HandleInstruction32();
 
 							switch(code2) {
 							case wasm::BinaryConsts::RefTestStatic:
@@ -814,8 +1269,7 @@ namespace TinyCode {
 							case wasm::BinaryConsts::ArrayGetS:
 							case wasm::BinaryConsts::ArraySet:
 							case wasm::BinaryConsts::ArrayLen: {
-								uint32_t indexed_type = io.ReadULEB();
-								items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+								HandleIndexedType();
 							}
 							case wasm::BinaryConsts::BrOnNull:
 							case wasm::BinaryConsts::BrOnNonNull:
@@ -827,37 +1281,28 @@ namespace TinyCode {
 							case wasm::BinaryConsts::BrOnNonData:
 							case wasm::BinaryConsts::BrOnI31:
 							case wasm::BinaryConsts::BrOnNonI31: {
-								uint32_t break_offset = io.ReadULEB();
-								items.push_back(new WasmBreak { { BREAK }, break_offset });
+								HandleBreak();
 							} break;
 							case wasm::BinaryConsts::BrOnCastStatic:
 							case wasm::BinaryConsts::BrOnCastStaticFail: {
-								uint32_t break_offset = io.ReadULEB();
-								items.push_back(new WasmBreak { { BREAK }, break_offset });
-								uint32_t indexed_type = io.ReadULEB();
-								items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+								HandleBreak();
+								HandleIndexedType();
 							} break;
 							case wasm::BinaryConsts::StructGet:
 							case wasm::BinaryConsts::StructGetS:
 							case wasm::BinaryConsts::StructGetU:
 							case wasm::BinaryConsts::StructSet: {
-								uint32_t indexed_type = io.ReadULEB();
-								items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
-								uint32_t struct_idx = io.ReadULEB();
-								items.push_back(new WasmIndex { { STRUCT }, struct_idx });
+								HandleIndexedType();
+								HandleIndex(STRUCT);
 							} break;
 							case wasm::BinaryConsts::ArrayInitStatic:
 							case wasm::BinaryConsts::ArrayInit: {
-								uint32_t indexed_type = io.ReadULEB();
-								items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
-								uint32_t size = io.ReadULEB();
-								items.push_back(new WasmSize { { SIZE }, size });
+								HandleIndexedType();
+								HandleSize();
 							} break;
 							case wasm::BinaryConsts::ArrayCopy: {
-								uint32_t indexed_type_dest = io.ReadULEB();
-								items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type_dest });
-								uint32_t indexed_type_src = io.ReadULEB();
-								items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type_src });
+								HandleIndexedType(); // dest
+								HandleIndexedType(); // src
 							} break;
 							}
 						} break;
@@ -867,206 +1312,171 @@ namespace TinyCode {
 			};
 
 			while(!io.Done()) {
-				uint8_t section_id = io.ReadU8();
-				size_t section_len = io.ReadULEB();
-				items.push_back(new WasmSection { { SECTION }, section_id, section_len });
+				auto section       = HandleSection();
+				uint8_t section_id = section.id;
+				size_t section_len = section.len;
+
 				switch(section_id) {
 				case wasm::BinaryConsts::Section::User: {
-					// Ignore user section
+					// Ignore user section when reading, TODO
 					io.Skip(section_len);
 					break;
 				}
 				case wasm::BinaryConsts::Section::Type: {
-					uint32_t num_types = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_types });
+					uint32_t num_types = HandleNum();
 					for(uint32_t i = 0; i < num_types; i++) {
-						int32_t type = io.ReadLEB();
-						items.push_back(new WasmType { { TYPE }, type });
+						int32_t type = HandleType();
 
 						if(type == wasm::BinaryConsts::EncodedType::Func) {
-							uint32_t num_params = io.ReadULEB();
-							items.push_back(new WasmNumber { { NUM }, num_params });
+							uint32_t num_params = HandleNum();
 							for(uint32_t j = 0; j < num_params; j++) {
-								int32_t param_type = io.ReadLEB();
-								items.push_back(new WasmType { { TYPE }, param_type });
+								int32_t param_type = HandleType();
 							}
 
-							uint32_t num_results = io.ReadULEB();
-							items.push_back(new WasmNumber { { NUM }, num_results });
+							uint32_t num_results = HandleNum();
 							for(uint32_t j = 0; j < num_results; j++) {
-								int32_t result_type = io.ReadLEB();
-								items.push_back(new WasmType { { TYPE }, result_type });
+								int32_t result_type = HandleType();
 							}
 						}
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Import: {
-					uint32_t num_imports = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_imports });
+					uint32_t num_imports = HandleNum();
 					for(uint32_t i = 0; i < num_imports; i++) {
-						std::string module = io.ReadString();
-						items.push_back(new WasmString { { STRING }, module });
-						std::string name = io.ReadString();
-						items.push_back(new WasmString { { STRING }, name });
-						uint8_t import_type = io.ReadU8();
-						items.push_back(new WasmExternal { { EXTERNAL }, import_type });
+						std::string module  = HandleString();
+						std::string name    = HandleString();
+						uint8_t import_type = HandleExternal();
 
 						switch((wasm::ExternalKind)import_type) {
 						case wasm::ExternalKind::Function: {
-							uint32_t indexed_type = io.ReadULEB();
-							items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+							HandleIndexedType();
 						} break;
 						case wasm::ExternalKind::Table: {
-							ReadTable();
+							HandleTable();
 						} break;
 						case wasm::ExternalKind::Memory: {
-							ReadLimits();
+							HandleLimits();
 						} break;
 						case wasm::ExternalKind::Global: {
-							ReadGlobal();
+							HandleGlobal();
 						} break;
 						case wasm::ExternalKind::Tag: {
-							uint32_t indexed_type = io.ReadULEB();
-							items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+							HandleIndexedType();
 						} break;
 						}
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Function: {
-					uint32_t num_funcs = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_funcs });
+					uint32_t num_funcs = HandleNum();
 					for(uint32_t i = 0; i < num_funcs; i++) {
-						uint32_t indexed_type = io.ReadULEB();
-						items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+						HandleIndexedType();
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Table: {
-					uint32_t num_tables = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_tables });
+					uint32_t num_tables = HandleNum();
 					for(uint32_t i = 0; i < num_tables; i++) {
-						ReadTable();
+						HandleTable();
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Memory: {
-					uint32_t num_mems = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_mems });
+					uint32_t num_mems = HandleNum();
 					for(uint32_t i = 0; i < num_mems; i++) {
-						ReadLimits();
+						HandleLimits();
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Global: {
-					uint32_t num_globals = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_globals });
+					uint32_t num_globals = HandleNum();
 					for(uint32_t i = 0; i < num_globals; i++) {
-						ReadGlobal();
-						ReadInstructions();
+						HandleGlobal();
+						HandleInstructions();
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Export: {
-					uint32_t num_exports = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_exports });
+					uint32_t num_exports = HandleNum();
 					for(uint32_t i = 0; i < num_exports; i++) {
-						std::string name = io.ReadString();
-						items.push_back(new WasmString { { STRING }, name });
-						uint8_t export_type = io.ReadU8();
-						items.push_back(new WasmExternal { { EXTERNAL }, export_type });
+						std::string name    = HandleString();
+						uint8_t export_type = HandleExternal();
 
-						uint32_t idx = io.ReadULEB();
 						switch((wasm::ExternalKind)export_type) {
 						case wasm::ExternalKind::Function: {
-							items.push_back(new WasmIndex { { FUNCTION }, idx });
+							HandleIndex(FUNCTION);
 						} break;
 						case wasm::ExternalKind::Table: {
-							items.push_back(new WasmIndex { { TABLE }, idx });
+							HandleIndex(TABLE);
 						} break;
 						case wasm::ExternalKind::Memory: {
-							items.push_back(new WasmIndex { { MEMORY }, idx });
+							HandleIndex(MEMORY);
 						} break;
 						case wasm::ExternalKind::Global: {
-							items.push_back(new WasmIndex { { GLOBAL }, idx });
+							HandleIndex(GLOBAL);
 						} break;
 						case wasm::ExternalKind::Tag: {
-							items.push_back(new WasmIndex { { TAG }, idx });
+							HandleIndex(TAG);
 						} break;
 						}
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Start: {
-					uint32_t func_idx = io.ReadULEB();
-					items.push_back(new WasmIndex { { FUNCTION }, func_idx });
+					HandleIndex(FUNCTION);
 					break;
 				}
 				case wasm::BinaryConsts::Section::Element: {
-					uint32_t num_elements = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_elements });
+					uint32_t num_elements = HandleNum();
 					for(uint32_t i = 0; i < num_elements; i++) {
-						uint8_t flags = io.ReadU8();
-						items.push_back(new WasmFlags { { FLAGS }, flags, 3 });
+						uint8_t flags = HandleFlags(3);
 						if(flags == 0) {
-							ReadInstructions();
-							uint32_t num_funcs = io.ReadULEB();
+							HandleInstructions();
+							uint32_t num_funcs = HandleNum();
 							for(int j = 0; j < num_funcs; j++) {
-								uint32_t func_idx = io.ReadULEB();
-								items.push_back(new WasmIndex { { FUNCTION }, func_idx });
+								HandleIndex(FUNCTION);
 							}
 						}
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Code: {
-					uint32_t num_funcs = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_funcs });
+					uint32_t num_funcs = HandleNum();
 					for(uint32_t i = 0; i < num_funcs; i++) {
-						uint32_t size = io.ReadULEB();
-						items.push_back(new WasmSize { { SIZE }, size });
-						uint32_t num_local_types = io.ReadULEB();
-						items.push_back(new WasmNumber { { NUM }, num_local_types });
+						uint32_t size            = HandleSize();
+						uint32_t num_local_types = HandleNum();
 						for(int j = 0; j < num_local_types; j++) {
-							uint32_t num_locals = io.ReadULEB();
-							items.push_back(new WasmNumber { { NUM }, num_locals });
-							ReadValType();
+							uint32_t num_locals = HandleNum();
+							HandleType();
 						}
 
-						ReadInstructions();
+						HandleInstructions();
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::Data: {
-					uint32_t num_segments = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_segments });
+					uint32_t num_segments = HandleNum();
 					for(uint32_t i = 0; i < num_segments; i++) {
-						uint8_t flags = io.ReadU8();
-						items.push_back(new WasmFlags { { FLAGS }, flags, 2 });
+						uint8_t flags = HandleFlags(2);
 
 						if(flags == 0) {
-							ReadInstructions();
+							HandleInstructions();
 						}
 
-						uint32_t size = io.ReadULEB();
-						items.push_back(new WasmSize { { SIZE }, size });
-						items.push_back(new WasmData { { DATA }, io.ReadSlice(size) });
+						uint32_t size = HandleSize();
+						HandleSlice(size);
 					}
 					break;
 				}
 				case wasm::BinaryConsts::Section::DataCount: {
-					uint32_t num_segments = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_segments });
+					uint32_t num_segments = HandleNum();
 				}
 				case wasm::BinaryConsts::Section::Tag: {
-					uint32_t num_tags = io.ReadULEB();
-					items.push_back(new WasmNumber { { NUM }, num_tags });
+					uint32_t num_tags = HandleNum();
 					for(uint32_t i = 0; i < num_tags; i++) {
-						uint8_t attribute = io.ReadU8();
-						items.push_back(new WasmAttribute { { ATTRIBUTE }, attribute });
-						uint32_t indexed_type = io.ReadULEB();
-						items.push_back(new WasmIndexedType { { INDEXED_TYPE }, indexed_type });
+						HandleAttribute();
+						HandleIndexedType();
 					}
 					break;
 				}
@@ -1213,5 +1623,7 @@ namespace TinyCode {
 
 			return current_bit;
 		}
+
+		uint64_t OptimizedToWasm(std::vector<uint8_t>& wasm_bytes, uint64_t bit_size, uint64_t current_bit, std::vector<uint8_t> bytes) { }
 	}
 }
