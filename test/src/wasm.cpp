@@ -25,8 +25,13 @@ TEST(Wasm, OptimizeTiny) {
 		// Generate module with default config
 		if(!wasm_smith_create(seed, SIZE_MODULES, &module)) {
 			std::vector<uint8_t> data(module.data, module.data + module.size);
-			// Feed to parser, check if no crash
-			TinyCode::Wasm::WasmToOptimized(data, 0, {});
+			std::vector<uint8_t> optimized_bytes;
+			TinyCode::Wasm::NormalToOptimized(data, 0, optimized_bytes);
+			std::vector<uint8_t> new_data(module.size);
+			TinyCode::Wasm::OptimizedToNormal(new_data, 0, optimized_bytes);
+
+			EXPECT_EQ(data, new_data);
+
 			wasm_tools_byte_vec_delete(&module);
 		}
 	}

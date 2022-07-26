@@ -135,28 +135,12 @@ namespace TinyCode {
 		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names) {
 			wasm::Module wasm;
 			OptimizeInternal(wasm, in, kept_names);
-			/*
-						std::vector<uint8_t> test_bytes;
-						OptimizedWasmWriter writer2(&wasm, test_bytes, 0);
-						writer2.setEmitModuleName(false);
-						writer2.setNamesSection(false);
-						uint64_t current_bit = writer2.analyzeAndWrite();
 
-						wasm::Module wasm2;
-						OptimizedWasmReader reader(wasm2, wasm2.features, test_bytes, 0);
-						reader.setDebugInfo(false);
-						reader.setDWARF(false);
-						reader.setSkipFunctionBodies(false);
-						reader.analyzeAndRead();
-			*/
 			wasm::BufferWithRandomAccess output_buffer;
 			wasm::WasmBinaryWriter writer(&wasm, output_buffer);
 			writer.setEmitModuleName(false);
 			writer.setNamesSection(false);
 			writer.write();
-
-			// TinyCode::Wasm::WasmToOptimized(output_buffer, 0, {});
-			TinyCode::Wasm::WasmToOptimized(in, 0, {});
 
 			std::copy(output_buffer.begin(), output_buffer.end(), std::back_inserter(out));
 		}

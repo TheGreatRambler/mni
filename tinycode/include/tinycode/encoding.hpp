@@ -78,8 +78,12 @@ namespace TinyCode {
 
 		template <typename T> uint64_t WriteLEB(T num, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
-			current_bit          = Write1Bit(num < 0, current_bit, bytes);
-			num                  = std::abs(num);
+			current_bit = Write1Bit(num < 0, current_bit, bytes);
+
+			if constexpr(std::is_signed<T>::value) {
+				num = std::abs(num);
+			}
+
 			int8_t required_bits = GetRequiredBits(num);
 			while(required_bits >= 0) {
 				const uint64_t mask = (1UL << multiple_bits) - 1;
@@ -100,7 +104,7 @@ namespace TinyCode {
 			}
 
 			int8_t required_bits = GetRequiredBits(num);
-			while(required_bits > 0) {
+			while(required_bits >= 0) {
 				const uint64_t mask = (1UL << multiple_bits) - 1;
 				current_bit         = WriteNumUnsigned(num & mask, multiple_bits, current_bit, bytes);
 				num >>= multiple_bits;
