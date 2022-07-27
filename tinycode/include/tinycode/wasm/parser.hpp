@@ -109,7 +109,6 @@ namespace TinyCode {
 			WRITE_OPTIMIZED,
 		};
 
-		uint64_t ConvertWasm(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes, ParsingMode in, ParsingMode out);
 		uint64_t NormalToOptimized(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t OptimizedToNormal(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes);
 	}
