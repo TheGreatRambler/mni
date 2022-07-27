@@ -84,14 +84,21 @@ namespace TinyCode {
 				num = std::abs(num);
 			}
 
+			if(num == 0) {
+				// Required bits would imply this could be written with 0 bits, which is impossible
+				current_bit = WriteNumUnsigned(0, multiple_bits, current_bit, bytes);
+				current_bit = Write1Bit(1, current_bit, bytes);
+				return current_bit;
+			}
+
 			int8_t required_bits = GetRequiredBits(num);
-			while(required_bits >= 0) {
+			while(required_bits > 0) {
 				const uint64_t mask = (1UL << multiple_bits) - 1;
 				current_bit         = WriteNumUnsigned(num & mask, multiple_bits, current_bit, bytes);
 				num >>= multiple_bits;
 				required_bits -= multiple_bits;
 
-				current_bit = Write1Bit(required_bits < 0, current_bit, bytes);
+				current_bit = Write1Bit(required_bits <= 0, current_bit, bytes);
 			}
 			return current_bit;
 		}
@@ -103,8 +110,15 @@ namespace TinyCode {
 				num = std::abs(num);
 			}
 
+			if(num == 0) {
+				// Required bits would imply this could be written with 0 bits, which is impossible
+				current_bit = WriteNumUnsigned(0, multiple_bits, current_bit, bytes);
+				current_bit = Write1Bit(1, current_bit, bytes);
+				return current_bit;
+			}
+
 			int8_t required_bits = GetRequiredBits(num);
-			while(required_bits >= 0) {
+			while(required_bits > 0) {
 				const uint64_t mask = (1UL << multiple_bits) - 1;
 				current_bit         = WriteNumUnsigned(num & mask, multiple_bits, current_bit, bytes);
 				num >>= multiple_bits;

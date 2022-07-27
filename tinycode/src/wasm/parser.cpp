@@ -9,36 +9,30 @@ namespace TinyCode {
 		void IO::WriteLEB(int64_t num) {
 			bool negative = (num < 0);
 			while(true) {
-				if(i < bytes.size()) {
-					uint8_t b = num & 0x7F;
-					num >>= 7;
-					if(negative) {
-						num |= (~0ULL << 57);
-					}
-					if(((num == 0) && (!(b & 0x40))) || ((num == -1) && (b & 0x40))) {
-						bytes[i++] = b;
-						return;
-					} else {
-						bytes[i++] = b | 0x80;
-					}
-				} else {
+				bytes.resize(i + 1);
+				uint8_t b = num & 0x7F;
+				num >>= 7;
+				if(negative) {
+					num |= (~0ULL << 57);
+				}
+				if(((num == 0) && (!(b & 0x40))) || ((num == -1) && (b & 0x40))) {
+					bytes[i++] = b;
 					return;
+				} else {
+					bytes[i++] = b | 0x80;
 				}
 			}
 		}
 
 		void IO::WriteULEB(uint64_t num) {
 			do {
-				if(i < bytes.size()) {
-					uint8_t b = num & 0x7F;
-					num >>= 7;
-					if(num != 0) {
-						b |= 0x80;
-					}
-					bytes[i++] = b;
-				} else {
-					return;
+				bytes.resize(i + 1);
+				uint8_t b = num & 0x7F;
+				num >>= 7;
+				if(num != 0) {
+					b |= 0x80;
 				}
+				bytes[i++] = b;
 			} while(num != 0);
 			return;
 		}
@@ -69,7 +63,7 @@ namespace TinyCode {
 			while(true) {
 				if(i < bytes.size()) {
 					uint8_t b = bytes[i++];
-					res |= (b & 0x7F) << shift;
+					res |= (b & 0x7FULL) << shift;
 					if(!(b & 0x80)) {
 						break;
 					}
@@ -82,6 +76,7 @@ namespace TinyCode {
 		}
 
 		void IO::WriteU8(uint8_t num) {
+			bytes.resize(i + 1);
 			bytes[i++] = num;
 		}
 
@@ -90,6 +85,7 @@ namespace TinyCode {
 		}
 
 		void IO::WriteU32(uint32_t num) {
+			bytes.resize(i + 4);
 			*(uint32_t*)&bytes[i] = num;
 			i += 4;
 		}
@@ -101,6 +97,7 @@ namespace TinyCode {
 		}
 
 		void IO::WriteU64(uint64_t num) {
+			bytes.resize(i + 8);
 			*(uint64_t*)&bytes[i] = num;
 			i += 8;
 		}
@@ -112,6 +109,7 @@ namespace TinyCode {
 		}
 
 		void IO::WriteFloat32(float num) {
+			bytes.resize(i + 4);
 			*(float*)&bytes[i] = num;
 			i += 4;
 		}
@@ -123,6 +121,7 @@ namespace TinyCode {
 		}
 
 		void IO::WriteFloat64(double num) {
+			bytes.resize(i + 8);
 			*(double*)&bytes[i] = num;
 			i += 8;
 		}
@@ -146,14 +145,20 @@ namespace TinyCode {
 		}
 
 		void IO::WriteSlice(std::vector<uint8_t> slice) {
-			std::move(slice.data(), slice.data() + slice.size(), &bytes[i]);
-			i += slice.size();
+			if(slice.size() != 0) {
+				bytes.resize(i + slice.size());
+				std::move(slice.data(), slice.data() + slice.size(), &bytes[i]);
+				i += slice.size();
+			}
 		}
 
 		void IO::WriteString(std::string str) {
 			WriteULEB(str.size());
-			std::move(str.data(), str.data() + str.size(), &bytes[i]);
-			i += str.size();
+			if(str.size() != 0) {
+				bytes.resize(i + str.size());
+				std::move(str.data(), str.data() + str.size(), &bytes[i]);
+				i += str.size();
+			}
 		}
 
 		std::vector<uint8_t> IO::ReadSlice(size_t len) {
@@ -166,7 +171,7 @@ namespace TinyCode {
 		std::string IO::ReadString() {
 			size_t size = ReadULEB();
 			std::string res((char*)&bytes[i], size);
-			res.push_back('\0');
+			// Do not append null byte
 			i += size;
 			return res;
 		}
@@ -483,6 +488,7 @@ namespace TinyCode {
 			TABLE,         // Table index
 			LOCAL,         // Local index
 			GLOBAL,        // Global index
+			MEMORY,        // Memory index, different than MEMORY_IDX which is u8
 			TAG,           // Tag index
 			I32,           // Literal
 			I64,           // Literal
@@ -491,7 +497,7 @@ namespace TinyCode {
 			F64,           // Literal
 			ATOMIC_ORDER,  // Atomic order
 			SEGMENT,       // Data segment
-			MEMORY,        //  Memory index, must be 0 in current version of wasm
+			MEMORY_IDX,    //  Memory index, must be 0 in current version of wasm
 			LANE,          // SIMD lane index
 			STRUCT,        // Struct index
 			EXTERNAL,      // Kind of external
@@ -516,6 +522,7 @@ namespace TinyCode {
 			{ TABLE, "TABLE" },
 			{ LOCAL, "LOCAL" },
 			{ GLOBAL, "GLOBAL" },
+			{ MEMORY, "MEMORY" },
 			{ TAG, "TAG" },
 			{ I32, "I32" },
 			{ I64, "I64" },
@@ -524,7 +531,7 @@ namespace TinyCode {
 			{ F64, "F64" },
 			{ ATOMIC_ORDER, "ATOMIC_ORDER" },
 			{ SEGMENT, "SEGMENT" },
-			{ MEMORY, "MEMORY" },
+			{ MEMORY_IDX, "MEMORY_IDX" },
 			{ LANE, "LANE" },
 			{ STRUCT, "STRUCT" },
 			{ EXTERNAL, "EXTERNAL" },
@@ -679,10 +686,7 @@ namespace TinyCode {
 				case READ_OPTIMIZED: {
 					uint8_t flags    = opt_io.ReadUNum(3);
 					uint64_t minimum = opt_io.ReadULEB();
-					uint64_t maximum = 0;
-					if(flags == 1) {
-						maximum = opt_io.ReadULEB();
-					}
+					uint64_t maximum = flags == 1 ? opt_io.ReadULEB() : 0;
 					items.push_back(new WasmLimit { { LIMIT }, flags, minimum, maximum });
 					return Limits { minimum, maximum };
 				} break;
@@ -774,9 +778,33 @@ namespace TinyCode {
 				return (uint8_t)0;
 			};
 
+			auto HandleFlags = [&](uint8_t bits) {
+				switch(mode) {
+				case READ_NORMAL: {
+					uint8_t flags = io.ReadU8();
+					items.push_back(new WasmFlags { { FLAGS }, flags, bits });
+					return flags;
+				} break;
+				case WRITE_NORMAL: {
+					WasmFlags* item = (WasmFlags*)items[item_idx];
+					io.WriteU8(item->flags);
+				} break;
+				case READ_OPTIMIZED: {
+					uint8_t flags = opt_io.ReadUNum(bits);
+					items.push_back(new WasmFlags { { FLAGS }, flags, bits });
+					return flags;
+				} break;
+				case WRITE_OPTIMIZED: {
+					WasmFlags* item = (WasmFlags*)items[item_idx];
+					opt_io.WriteUNum(item->flags, item->num_bits);
+				} break;
+				}
+				return (uint8_t)0;
+			};
+
 			auto HandleGlobal = [&]() {
-				int32_t type      = HandleType();
-				uint8_t attribute = HandleAttribute();
+				int32_t type       = HandleType();
+				uint8_t is_mutable = HandleFlags(1);
 			};
 
 			auto HandleMemoryOp = [&]() {
@@ -1076,7 +1104,7 @@ namespace TinyCode {
 				switch(mode) {
 				case READ_NORMAL: {
 					uint8_t memory_idx = io.ReadU8();
-					items.push_back(new WasmMemory { { MEMORY }, memory_idx });
+					items.push_back(new WasmMemory { { MEMORY_IDX }, memory_idx });
 					return memory_idx;
 				} break;
 				case WRITE_NORMAL: {
@@ -1084,7 +1112,7 @@ namespace TinyCode {
 					io.WriteU8(item->idx);
 				} break;
 				case READ_OPTIMIZED: {
-					items.push_back(new WasmMemory { { MEMORY }, 0 });
+					items.push_back(new WasmMemory { { MEMORY_IDX }, 0 });
 					return (uint8_t)0;
 				} break;
 				case WRITE_OPTIMIZED: {
@@ -1218,14 +1246,16 @@ namespace TinyCode {
 				} break;
 				case READ_OPTIMIZED: {
 					size_t string_size = opt_io.ReadULEB();
-					std::string str    = opt_io.ReadString(string_size);
+					std::string str    = string_size == 0 ? std::string() : opt_io.ReadString(string_size);
 					items.push_back(new WasmString { { STRING }, str });
 					return str;
 				} break;
 				case WRITE_OPTIMIZED: {
 					WasmString* item = (WasmString*)items[item_idx];
 					opt_io.WriteULEB(item->str.size());
-					opt_io.WriteString(item->str);
+					if(item->str.size() != 0) {
+						opt_io.WriteString(item->str);
+					}
 				} break;
 				}
 				return std::string();
@@ -1255,51 +1285,29 @@ namespace TinyCode {
 				return (uint8_t)0;
 			};
 
-			auto HandleFlags = [&](uint8_t bits) {
-				switch(mode) {
-				case READ_NORMAL: {
-					uint8_t flags = io.ReadU8();
-					items.push_back(new WasmFlags { { FLAGS }, flags, bits });
-					return flags;
-				} break;
-				case WRITE_NORMAL: {
-					WasmFlags* item = (WasmFlags*)items[item_idx];
-					io.WriteU8(item->flags);
-				} break;
-				case READ_OPTIMIZED: {
-					uint8_t flags = opt_io.ReadUNum(bits);
-					items.push_back(new WasmFlags { { FLAGS }, flags, bits });
-					return flags;
-				} break;
-				case WRITE_OPTIMIZED: {
-					WasmFlags* item = (WasmFlags*)items[item_idx];
-					opt_io.WriteUNum(item->flags, item->num_bits);
-				} break;
-				}
-				return (uint8_t)0;
-			};
-
 			auto HandleSlice = [&](size_t size) {
 				switch(mode) {
 				case READ_NORMAL: {
-					auto slice = io.ReadSlice(size);
+					auto slice = size == 0 ? std::vector<uint8_t>() : io.ReadSlice(size);
 					items.push_back(new WasmData { { DATA }, slice });
 					return slice;
 				} break;
 				case WRITE_NORMAL: {
 					WasmData* item = (WasmData*)items[item_idx];
-					io.WriteSlice(item->data);
+					if(item->data.size() != 0) {
+						io.WriteSlice(item->data);
+					}
 				} break;
 				case READ_OPTIMIZED: {
-					size_t slice_size = opt_io.ReadULEB();
-					auto slice        = opt_io.ReadSlice(slice_size);
+					auto slice = size == 0 ? std::vector<uint8_t>() : opt_io.ReadSlice(size);
 					items.push_back(new WasmData { { DATA }, slice });
 					return slice;
 				} break;
 				case WRITE_OPTIMIZED: {
 					WasmData* item = (WasmData*)items[item_idx];
-					opt_io.WriteULEB(item->data.size());
-					opt_io.WriteSlice(item->data);
+					if(item->data.size() != 0) {
+						opt_io.WriteSlice(item->data);
+					}
 				} break;
 				}
 				return std::vector<uint8_t>();
@@ -1587,14 +1595,11 @@ namespace TinyCode {
 
 						switch(section_id) {
 						case wasm::BinaryConsts::Section::User: {
-							// Ignore user section when reading, TODO
-							if(mode == READ_OPTIMIZED) {
-								io.Skip(section_len);
-							}
+							// Do not attempt to parse user section
+							HandleSlice(section_len);
 							break;
 						}
 						case wasm::BinaryConsts::Section::Type: {
-							std::cout << "Current bit: " << opt_io.GetCurrentBit() << std::endl;
 							uint32_t num_types = HandleNum();
 							for(uint32_t i = 0; i < num_types; i++) {
 								int32_t type = HandleType();
@@ -1736,8 +1741,8 @@ namespace TinyCode {
 									HandleInstructions();
 								}
 
-								uint32_t size = HandleSize();
-								HandleSlice(size);
+								size_t slice_size = HandleSize();
+								HandleSlice(slice_size);
 							}
 							break;
 						}
@@ -1759,10 +1764,6 @@ namespace TinyCode {
 						// Append magic and version, required in the webassembly spec
 						io.WriteU32(wasm::BinaryConsts::Magic);
 						io.WriteU32(wasm::BinaryConsts::Version);
-					}
-
-					if(mode == WRITE_OPTIMIZED) {
-						std::cout << "Write optimized" << std::endl;
 					}
 
 					for(size_t i = 0; i < items.size(); i++) {
@@ -1807,6 +1808,7 @@ namespace TinyCode {
 						case TABLE:
 						case LOCAL:
 						case GLOBAL:
+						case MEMORY:
 						case TAG:
 						case STRUCT:
 							HandleIndex(items[i]->type);
@@ -1832,7 +1834,7 @@ namespace TinyCode {
 						case SEGMENT:
 							HandleSegment();
 							break;
-						case MEMORY:
+						case MEMORY_IDX:
 							HandleMemory();
 							break;
 						case LANE:
@@ -1847,10 +1849,6 @@ namespace TinyCode {
 						case DATA:
 							HandleSlice(0);
 							break;
-						}
-
-						if(mode == WRITE_OPTIMIZED) {
-							std::cout << "Item written: " << item_type_to_name[items[item_idx]->type] << " at " << opt_io.GetSize() << std::endl;
 						}
 
 						item_idx++;

@@ -25,11 +25,13 @@ TEST(Wasm, OptimizeTiny) {
 		// Generate module with default config
 		if(!wasm_smith_create(seed, SIZE_MODULES, &module)) {
 			std::vector<uint8_t> data(module.data, module.data + module.size);
+
 			std::vector<uint8_t> optimized_bytes;
 			TinyCode::Wasm::NormalToOptimized(data, 0, optimized_bytes);
 			std::vector<uint8_t> new_data(module.size);
 			TinyCode::Wasm::OptimizedToNormal(new_data, 0, optimized_bytes);
 
+			EXPECT_EQ(data.size(), new_data.size());
 			EXPECT_EQ(data, new_data);
 
 			wasm_tools_byte_vec_delete(&module);
