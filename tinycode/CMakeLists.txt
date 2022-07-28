@@ -12,6 +12,20 @@ if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
 	add_link_options(-g -O0)
 endif()
 
+if(DEFINED ANDROID_NDK)
+	# Define Android architecture variables
+	# Used for building in skia and determining build locations
+	if(ANDROID_ABI STREQUAL "armeabi-v7a")
+		set(ANDROID_ARCH "arm")
+	elseif(ANDROID_ABI STREQUAL "arm64-v8a")
+		set(ANDROID_ARCH "arm64")
+	elseif(ANDROID_ABI STREQUAL "x86")
+		set(ANDROID_ARCH "x86")
+	elseif(ANDROID_ABI STREQUAL "x86_64")
+		set(ANDROID_ARCH "x64")
+	endif()
+endif()
+
 # ZXing for QR codes
 set(BUILD_EXAMPLES OFF)
 set(BUILD_BLACKBOX_TESTS OFF)
@@ -21,16 +35,26 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/zxing ${CMAKE_CURREN
 
 # Skia for rendering QR codes and programs
 set(SKIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/skia)
-set(SKIA_BUILD_TYPE out/Static)
-set(SKIA_CMAKE_DIR ${SKIA_DIR}/${SKIA_BUILD_TYPE})
-set(SKIA_LINK ${SKIA_CMAKE_DIR})
+set(SKIA_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/third_party/skia)
 execute_process(
 	COMMAND python tools/git-sync-deps
 	WORKING_DIRECTORY ${SKIA_DIR})
-execute_process(
-	COMMAND bin/gn gen ${SKIA_BUILD_TYPE} "--args=is_official_build=true clang_win=\"C:/Program Files/LLVM\" extra_cflags=[\"/MDd\"] skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false"
-	WORKING_DIRECTORY ${SKIA_DIR})
-execute_process(COMMAND ninja WORKING_DIRECTORY ${SKIA_CMAKE_DIR})
+if(DEFINED ANDROID_NDK)
+	execute_process(
+		COMMAND bin/gn gen ${SKIA_BUILD_DIR} "--args=is_debug=false is_android=true ndk=\"${ANDROID_NDK}\" target_cpu=\"${ANDROID_ARCH}\" is_component_build=true skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_icu=false"
+		WORKING_DIRECTORY ${SKIA_DIR})
+	add_library(skia SHARED IMPORTED)
+	set_property(TARGET skia PROPERTY
+		IMPORTED_LOCATION ${SKIA_BUILD_DIR}/libskia.so)
+else()
+	execute_process(
+		COMMAND bin/gn gen ${SKIA_BUILD_DIR} "--args=is_official_build=true clang_win=\"C:/Program Files/LLVM\" extra_cflags=[\"/MDd\"] skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false"
+		WORKING_DIRECTORY ${SKIA_DIR})
+	add_library(skia STATIC IMPORTED)
+	set_property(TARGET skia PROPERTY
+		IMPORTED_LOCATION ${SKIA_BUILD_DIR}/skia.lib)
+endif()
+execute_process(COMMAND ninja WORKING_DIRECTORY ${SKIA_BUILD_DIR})
 
 # Binaryen for webassembly
 set(BINARYEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/binaryen)
@@ -65,5 +89,9 @@ target_compile_options(tinycode PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno
 
 include_directories(${ZXING_INCLUDE_DIRS} ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode ${BINARYEN_DIR}/src ${wasm3_includes})
 
-target_link_libraries(tinycode PUBLIC ZXing ${SKIA_LINK}/skia.lib binaryen m3 gdi32 opengl32)
+if(WIN32)
+	target_link_libraries(tinycode PUBLIC ZXing skia binaryen m3 gdi32 opengl32)
+else()
+	target_link_libraries(tinycode PUBLIC ZXing skia binaryen m3)
+endif()
 target_include_directories(tinycode PUBLIC include)

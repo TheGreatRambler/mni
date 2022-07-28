@@ -20,6 +20,18 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++2a", "-Wall", "-Wextra"
+                arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_static",
+                        "-DCMAKE_ANDROID_NDK=${android.ndkDirectory}",
+                        "-DTINYCODE_LOCATION=${project.rootDir}/../../tinycode"
+            }
+        }
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a", "x86"
+        }
     }
 
     buildTypes {
@@ -28,10 +40,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = '1.8'
     }

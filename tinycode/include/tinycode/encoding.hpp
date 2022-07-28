@@ -4,6 +4,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <limits>
 #include <unordered_map>
 #include <vector>
 
@@ -15,35 +16,38 @@ namespace TinyCode {
 		};
 
 		static constexpr uint8_t DEFAULT_LEB_MULTIPLE = 7;
+		// Handles up to 16777216 element vectors
+		static constexpr uint8_t LIST_SIZE_BITS = 24;
+		// Handles 4 different encoding types
+		static constexpr uint8_t LIST_TYPE_BITS = 2;
 
 		uint64_t AddDataHeader(uint64_t current_bit, std::vector<uint8_t>& bytes, DataHeader header);
 		void CopyOverSrcOffset(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest);
 		void CopyOverDestOffset(std::vector<uint8_t>& src, uint64_t size, std::vector<uint8_t>& dest, uint64_t dest_offset);
 
+		uint64_t Write1Bit(bool bit, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t WriteFloat(float num, uint8_t mantissa_bits_to_remove, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t WriteDouble(double num, uint8_t mantissa_bits_to_remove, uint64_t current_bit, std::vector<uint8_t>& bytes);
+
 		template <typename T> uint8_t GetRequiredBits(T num) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
+
+			if(!num) {
+				return 0;
+			}
+
+			// std::bit_width is in C++20 but Android does not fully support C++20
 			if constexpr(std::is_signed<T>::value) {
 				typedef typename std::make_unsigned<T>::type unsigned_t;
-				return std::bit_width((unsigned_t)std::abs(num));
+				return std::numeric_limits<unsigned_t>::digits - std::countl_zero((unsigned_t)std::abs(num));
 			} else {
-				return std::bit_width(num);
+				return std::numeric_limits<T>::digits - std::countl_zero(num);
 			}
 		}
 
 		template <typename T> uint8_t GetRequiredLEBBits(T num, uint8_t multiple_bits) {
 			uint8_t required_bits = GetRequiredBits(num);
 			return std::ceil(required_bits / (float)multiple_bits) * (multiple_bits + 1);
-		}
-
-		template <typename T> uint64_t WriteNum(T num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			static_assert(std::is_integral<T>::value, "Must be passed integral type");
-			if constexpr(std::is_signed<T>::value) {
-				current_bit = Write1Bit(num < 0, current_bit, bytes);
-				return WriteNumUnsigned(std::abs(num), bit_size, current_bit, bytes);
-			} else {
-				current_bit = Write1Bit(false, current_bit, bytes);
-				return WriteNumUnsigned(num, bit_size, current_bit, bytes);
-			}
 		}
 
 		template <typename T> uint64_t WriteNumUnsigned(T num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
@@ -62,6 +66,17 @@ namespace TinyCode {
 			}
 
 			return current_bit;
+		}
+
+		template <typename T> uint64_t WriteNum(T num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			static_assert(std::is_integral<T>::value, "Must be passed integral type");
+			if constexpr(std::is_signed<T>::value) {
+				current_bit = Write1Bit(num < 0, current_bit, bytes);
+				return WriteNumUnsigned(std::abs(num), bit_size, current_bit, bytes);
+			} else {
+				current_bit = Write1Bit(false, current_bit, bytes);
+				return WriteNumUnsigned(num, bit_size, current_bit, bytes);
+			}
 		}
 
 		template <typename T> uint64_t WriteTaggedNum(T num, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
@@ -128,10 +143,6 @@ namespace TinyCode {
 			}
 			return current_bit;
 		}
-
-		uint64_t Write1Bit(bool bit, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t WriteFloat(float num, uint8_t mantissa_bits_to_remove, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t WriteDouble(double num, uint8_t mantissa_bits_to_remove, uint64_t current_bit, std::vector<uint8_t>& bytes);
 
 		enum IntegerListEncodingType : uint8_t {
 			FIXED        = 0,
@@ -367,10 +378,6 @@ namespace TinyCode {
 		uint64_t MoveBits(uint64_t start, uint64_t end, uint64_t new_start, std::vector<uint8_t>& bytes);
 		uint64_t CopyBits(uint64_t start, uint64_t end, uint64_t new_start, std::vector<uint8_t>& bytes_src, std::vector<uint8_t>& bytes_dest);
 
-		// Handles 4 different encoding types
-		static constexpr uint8_t LIST_TYPE_BITS = 2;
-		// Handles up to 16777216 element vectors
-		static constexpr uint8_t LIST_SIZE_BITS = 24;
 		// Compression type in stream, handles 4 types
 		static constexpr uint8_t COMPRESSION_TYPE_BITS = 3;
 		// Bits used for delta, determines how large the delta can be before delta is not used

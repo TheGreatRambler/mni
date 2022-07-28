@@ -21,7 +21,7 @@ add_executable(test ${APPLICATION_TYPE}
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm-tools/crates/c-api ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasm-tools)
 
 target_include_directories(test PUBLIC include src wasm-tools)
-target_compile_options(test PRIVATE -Wall -Wextra -Wno-deprecated-declarations)
+target_compile_options(test PRIVATE -Wall -Wextra -Wno-deprecated-declarations -Wno-unused-variable)
 
 set_target_properties(test PROPERTIES
 		OUTPUT_NAME "tinycode_test"

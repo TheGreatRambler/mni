@@ -13,6 +13,10 @@ namespace TinyCode {
 
 		uint64_t ReadDataHeader(Encoding::DataHeader& header, std::vector<uint8_t>& bytes);
 
+		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadFloat(float* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadDouble(double* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
+
 		template <typename T> uint64_t ReadNum(T* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
@@ -115,10 +119,6 @@ namespace TinyCode {
 
 			return current_bit;
 		}
-
-		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t ReadFloat(float* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t ReadDouble(double* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
 
 		template <typename T> uint64_t ReadHuffmanHeader(TinyCode::Tree::Node<T>* root, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			std::vector<T> elements;
