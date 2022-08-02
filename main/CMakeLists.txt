@@ -7,10 +7,11 @@ if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
 	add_link_options(-g -O0)
 endif()
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/CLI11 ${CMAKE_CURRENT_BINARY_DIR}/third_party/CLI11)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/fmt ${CMAKE_CURRENT_BINARY_DIR}/third_party/fmt)
+
 add_executable(main ${APPLICATION_TYPE}
 	src/main.cpp
-	src/fmt/format.cpp
-	src/fmt/os.cpp
 )
 
 target_include_directories(main PUBLIC include src)
@@ -22,4 +23,4 @@ set_target_properties(main PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(main PUBLIC tinycode)
+target_link_libraries(main PUBLIC tinycode CLI11::CLI11 fmt)

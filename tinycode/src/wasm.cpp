@@ -21,6 +21,7 @@
 #include <wasm-type.h>
 #include <wasm.h>
 #include <wasm3.h>
+#include <wasmtime.h>
 
 // Finds all reachable functions in wasm module
 // Based on https://github.com/WebAssembly/binaryen/blob/5881b541a4b276dcd5576aa065e4fb860531fc7b/src/ast_utils.h#L73
@@ -60,7 +61,7 @@ private:
 
 namespace TinyCode {
 	namespace Wasm {
-		void OptimizeInternal(wasm::Module& wasm, std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names) {
+		void RemoveUnneccesaryInternal(wasm::Module& wasm, std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names) {
 			wasm::WasmBinaryBuilder parser(wasm, wasm.features, (std::vector<char>&)in);
 			parser.setDebugInfo(false);
 			parser.setDWARF(false);
@@ -129,12 +130,12 @@ namespace TinyCode {
 				}
 			}
 
-			wasm.removeExport("memory");
+			// wasm.removeExport("memory");
 		}
 
-		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names) {
+		void RemoveUnneccesary(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names) {
 			wasm::Module wasm;
-			OptimizeInternal(wasm, in, kept_names);
+			RemoveUnneccesaryInternal(wasm, in, kept_names);
 
 			wasm::BufferWithRandomAccess output_buffer;
 			wasm::WasmBinaryWriter writer(&wasm, output_buffer);
@@ -145,40 +146,46 @@ namespace TinyCode {
 			std::copy(output_buffer.begin(), output_buffer.end(), std::back_inserter(out));
 		}
 
-		uint64_t OptimizeTiny(
-			std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			wasm::Module wasm;
-			OptimizeInternal(wasm, in, kept_names);
+		TeenyCodeMetadata GetMetadata(std::vector<uint8_t>& wasm) {
+			wasm_engine_t* engine = wasm_engine_new();
 
-			// wasm::BufferWithRandomAccess output_buffer;
-			// OptimizedWasmWriter writer(&wasm, output_buffer);
-			// writer.setEmitModuleName(false);
-			// writer.setNamesSection(false);
-			// writer.write();
+			wasmtime_store_t* store     = wasmtime_store_new(engine, NULL, NULL);
+			wasmtime_context_t* context = wasmtime_store_context(store);
 
-			// std::copy(output_buffer.begin(), output_buffer.end(), std::back_inserter(out));
-		}
+			wasmtime_module_t* module = NULL;
+			wasmtime_error_t* error   = wasmtime_module_new(engine, wasm.data(), wasm.size(), &module);
 
-		void ConvertFromTiny(std::vector<uint8_t>& in, std::vector<uint8_t>& out) {
-			wasm::Module wasm;
+			wasm_trap_t* trap = NULL;
+			wasmtime_instance_t instance;
+			error = wasmtime_instance_new(context, module, NULL, 0, &instance, &trap);
 
-			// OptimizedWasmReader reader(wasm, wasm.features, (std::vector<char>&)in);
-			// reader.setDebugInfo(false);
-			// reader.setDWARF(false);
-			// reader.setSkipFunctionBodies(false);
-			// reader.read();
+			wasmtime_extern_t memory_item;
+			if(!wasmtime_instance_export_get(context, &instance, "memory", strlen("memory"), &memory_item)) {
+				std::cout << "Could not retrieve \"memory\" from exports" << std::endl;
+			}
+			wasmtime_memory_t memory = memory_item.of.memory;
+			uint8_t* memory_base     = wasmtime_memory_data(context, &memory);
 
-			wasm::BufferWithRandomAccess output_buffer;
-			wasm::WasmBinaryWriter writer(&wasm, output_buffer);
-			writer.setEmitModuleName(false);
-			writer.setNamesSection(false);
-			writer.write();
+			// teenycode_name
+			wasmtime_extern_t read_name;
+			if(!wasmtime_instance_export_get(context, &instance, "teenycode_name", strlen("teenycode_name"), &read_name)) {
+				std::cout << "Could not retrieve \"teenycode_name\" from exports" << std::endl;
+			}
+			wasmtime_val_t name_addr;
+			error               = wasmtime_func_call(context, &read_name.of.func, NULL, 0, &name_addr, 1, &trap);
+			int name_addr_value = name_addr.of.i32;
 
-			std::copy(output_buffer.begin(), output_buffer.end(), std::back_inserter(out));
+			TeenyCodeMetadata metadata = {
+				.name = std::string((char*)(memory_base + name_addr_value)),
+			};
+
+			wasmtime_store_delete(store);
+			wasm_engine_delete(engine);
+
+			return metadata;
 		}
 
 		void Execute(std::vector<uint8_t>& wasm) {
-
 			// https://pastebin.com/js5Zn4DU
 			M3Result result    = m3Err_none;
 			IM3Environment env = m3_NewEnvironment();
@@ -222,76 +229,45 @@ namespace TinyCode {
 			m3_FreeEnvironment(env);
 		}
 
-		void FuzzTest() {
-			auto GenerateSeededRandomString = [](int seed, int len) {
-				static constexpr auto chars = "0123456789"
-											  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-											  "abcdefghijklmnopqrstuvwxyz";
-				std::mt19937 rng(seed);
-				auto dist   = std::uniform_int_distribution { {}, std::strlen(chars) - 1 };
-				auto result = std::string(len, '\0');
-				std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
-				return result;
-			};
+		void Execute2(std::vector<uint8_t>& wasm) {
+			wasm_engine_t* engine = wasm_engine_new();
 
-			bool READ_COMPARE = std::filesystem::exists("moduleCompare.bin");
-			std::fstream moduleCompare(
-				"moduleCompare.bin", READ_COMPARE ? (std::ios::in | std::ios::binary) : (std::ios::out | std::ios::trunc | std::ios::binary));
+			wasmtime_store_t* store     = wasmtime_store_new(engine, NULL, NULL);
+			wasmtime_context_t* context = wasmtime_store_context(store);
 
-			int64_t cumulativeTime = 0;
+			wasmtime_module_t* module = NULL;
+			wasmtime_error_t* error   = wasmtime_module_new(engine, wasm.data(), wasm.size(), &module);
 
-			for(int i = 0; i < 32767; i++) {
-				std::string commandString
-					= std::string("echo ") + GenerateSeededRandomString(i, 1000)
-					  + std::string(
-						  " | wasm-tools smith -o test.wasm --sign-extension-ops false --saturating-float-to-int false --multi-value false");
-				system(commandString.c_str());
+			wasm_trap_t* trap = NULL;
+			wasmtime_instance_t instance;
+			error = wasmtime_instance_new(context, module, NULL, 0, &instance, &trap);
 
-				try {
-					wasm::Module wasm;
-					std::ifstream testFile("test.wasm", std::ios::binary);
-					std::vector<char> fileContents((std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
+			wasmtime_extern_t read_string;
+			bool ok = wasmtime_instance_export_get(context, &instance, "_Z15readable_stringv", strlen("_Z15readable_stringv"), &read_string);
 
-					auto start = std::chrono::high_resolution_clock::now();
-					wasm::WasmBinaryBuilder parser(wasm, wasm.features, fileContents);
-					parser.read();
+			wasmtime_val_t str_addr;
+			error = wasmtime_func_call(context, &read_string.of.func, NULL, 0, &str_addr, 1, &trap);
 
-					wasm::BufferWithRandomAccess buffer;
-					wasm::WasmBinaryWriter writer(&wasm, buffer);
-					writer.setEmitModuleName(false);
-					writer.setNamesSection(false);
-					writer.write();
-					auto stop = std::chrono::high_resolution_clock::now();
+			int str_addr_value = str_addr.of.i32;
 
-					cumulativeTime += std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
+			// Get memory
+			wasmtime_extern_t memory_item;
+			if(!wasmtime_instance_export_get(context, &instance, "memory", strlen("memory"), &memory_item)) {
+				std::cout << "Couldn't find memory" << std::endl;
+			}
+			wasmtime_memory_t memory = memory_item.of.memory;
 
-					if(READ_COMPARE) {
-						int expectedSize;
-						moduleCompare.read((char*)&expectedSize, sizeof(expectedSize));
-						std::vector<uint8_t> expectedOutput(expectedSize);
-						moduleCompare.read((char*)expectedOutput.data(), expectedSize);
-						if(buffer != expectedOutput) {
-							std::cout << "Module produces incorrect output:" << std::endl;
-							system("wasm2wat test.wasm");
-						}
-					} else {
-						int size = buffer.size();
-						moduleCompare.write((char*)&size, sizeof(size));
-						moduleCompare.write((char*)buffer.data(), size);
-					}
-				} catch(std::exception e) {
-					std::cout << "Exception: " << e.what() << std::endl;
-					system("wasm2wat test.wasm");
-				}
-
-				if(i % 100 == 0) {
-					std::cout << "Checked " << i << " modules" << std::endl;
-				}
+			if(memory_item.kind == WASMTIME_EXTERN_MEMORY) {
+				std::cout << "OK memory" << std::endl;
 			}
 
-			std::cout << "Average is " << (double)cumulativeTime / 32767 << " microseconds" << std::endl;
+			// Read string
+			uint8_t* memory_base = wasmtime_memory_data(context, &memory);
 
-			moduleCompare.close();
+			std::cout << "Returned string: " << std::string((char*)(memory_base + str_addr_value)) << std::endl;
+
+			wasmtime_store_delete(store);
+			wasm_engine_delete(engine);
 		}
 	}
 }

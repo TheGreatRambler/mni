@@ -5,6 +5,7 @@ plugins {
 
 android {
     compileSdk 31
+    ndkVersion = '25.0.8775105'
     viewBinding {
         enabled = true
     }
@@ -29,8 +30,10 @@ android {
                         "-DTINYCODE_LOCATION=${project.rootDir}/../../tinycode"
             }
         }
+
         ndk {
-            abiFilters "arm64-v8a", "armeabi-v7a", "x86"
+            // Until wasmtime supports more architectures, this will do
+            abiFilters "arm64-v8a"
         }
     }
 

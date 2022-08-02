@@ -3,7 +3,7 @@ project(tinycode)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_compile_options(-Wno-ambiguous-reversed-operator)
+add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-unused-parameter)
 add_compile_options(-Wno-extern-initializer)
@@ -41,7 +41,7 @@ execute_process(
 	WORKING_DIRECTORY ${SKIA_DIR})
 if(DEFINED ANDROID_NDK)
 	execute_process(
-		COMMAND bin/gn gen ${SKIA_BUILD_DIR} "--args=is_debug=false is_android=true ndk=\"${ANDROID_NDK}\" target_cpu=\"${ANDROID_ARCH}\" is_component_build=true skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_icu=false"
+		COMMAND bin/gn gen ${SKIA_BUILD_DIR} "--args=is_debug=false ndk=\"${ANDROID_NDK}\" target_cpu=\"${ANDROID_ARCH}\" is_component_build=true skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_icu=false"
 		WORKING_DIRECTORY ${SKIA_DIR})
 	add_library(skia SHARED IMPORTED)
 	set_property(TARGET skia PROPERTY
@@ -72,6 +72,14 @@ set(wasm3_includes
 )
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm3/source ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasm3)
 
+# wasmtime for an alternative better Webassembly runtime
+set(WASMTIME_INCLUDES 
+	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api/include
+	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api/wasm-c-api/include
+)
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasmtime)
+
 set(tinycode_SOURCES
 	src/encoding.cpp
 	src/decoding.cpp
@@ -87,11 +95,12 @@ add_library(tinycode STATIC ${tinycode_SOURCES})
 set_target_properties(tinycode PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_options(tinycode PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-braces)
 
-include_directories(${ZXING_INCLUDE_DIRS} ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode ${BINARYEN_DIR}/src ${wasm3_includes})
+include_directories(${WASMTIME_INCLUDES})
+include_directories(ZXing ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode ${BINARYEN_DIR}/src m3)
 
 if(WIN32)
-	target_link_libraries(tinycode PUBLIC ZXing skia binaryen m3 gdi32 opengl32)
+	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen m3 gdi32 opengl32)
 else()
-	target_link_libraries(tinycode PUBLIC ZXing skia binaryen m3)
+	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen m3)
 endif()
 target_include_directories(tinycode PUBLIC include)

@@ -7,12 +7,12 @@
 
 namespace TinyCode {
 	namespace Encoding {
-		uint64_t AddDataHeader(uint64_t current_bit, std::vector<uint8_t>& bytes, DataHeader header) {
-			// Header goes at beginning
-			std::vector<uint8_t> output_header;
-			WriteNumUnsigned(header.size, 16, 0, output_header);
-			bytes.insert(bytes.begin(), output_header.begin(), output_header.end());
-			return current_bit + output_header.size() * 8;
+		uint64_t PrependSize(uint64_t current_bit, uint64_t size_current_bit, std::vector<uint8_t>& bytes) {
+			// Writes LEB at size_current_bit with current_bit - size_current_bit
+			uint64_t size  = current_bit - size_current_bit;
+			auto size_bits = TinyCode::Encoding::GetRequiredLEBBits(size, DEFAULT_LEB_MULTIPLE);
+			current_bit    = TinyCode::Encoding::MoveBits(size_current_bit, current_bit, size_current_bit + size_bits, bytes);
+			return TinyCode::Encoding::WriteLEBUnsigned(size, DEFAULT_LEB_MULTIPLE, size_current_bit, bytes) + size;
 		}
 
 		void CopyOverSrcOffset(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest) {

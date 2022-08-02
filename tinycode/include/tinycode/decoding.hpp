@@ -11,11 +11,13 @@ namespace TinyCode {
 	namespace Decoding {
 		static constexpr uint8_t DEFAULT_LEB_MULTIPLE = 7;
 
-		uint64_t ReadDataHeader(Encoding::DataHeader& header, std::vector<uint8_t>& bytes);
-
 		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadFloat(float* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
 		uint64_t ReadDouble(double* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
+
+		template <typename T> uint64_t ReadPrependSize(T* size_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			return ReadLEBUnsigned(size_out, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
+		}
 
 		template <typename T> uint64_t ReadNum(T* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");

@@ -76,7 +76,7 @@ namespace TinyCode {
 			bool success = bitmap.peekPixels(&src);
 			SkFILEWStream dest(path.c_str());
 			SkPngEncoder::Options options;
-			options.fZLibLevel = 5;
+			options.fZLibLevel = 9;
 			success            = SkPngEncoder::Encode(&dest, src, options);
 		}
 	}

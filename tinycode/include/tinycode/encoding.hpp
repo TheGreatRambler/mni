@@ -10,18 +10,13 @@
 
 namespace TinyCode {
 	namespace Encoding {
-		struct DataHeader {
-			uint16_t size;
-			// TODO consider adding type
-		};
-
 		static constexpr uint8_t DEFAULT_LEB_MULTIPLE = 7;
 		// Handles up to 16777216 element vectors
 		static constexpr uint8_t LIST_SIZE_BITS = 24;
 		// Handles 4 different encoding types
 		static constexpr uint8_t LIST_TYPE_BITS = 2;
 
-		uint64_t AddDataHeader(uint64_t current_bit, std::vector<uint8_t>& bytes, DataHeader header);
+		uint64_t PrependSize(uint64_t current_bit, uint64_t size_current_bit, std::vector<uint8_t>& bytes);
 		void CopyOverSrcOffset(std::vector<uint8_t>& src, uint64_t size, uint64_t src_offset, std::vector<uint8_t>& dest);
 		void CopyOverDestOffset(std::vector<uint8_t>& src, uint64_t size, std::vector<uint8_t>& dest, uint64_t dest_offset);
 

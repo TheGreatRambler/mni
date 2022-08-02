@@ -4,17 +4,6 @@
 
 namespace TinyCode {
 	namespace Decoding {
-		uint64_t ReadDataHeader(Encoding::DataHeader& header, std::vector<uint8_t>& bytes) {
-			uint64_t current_bit = 0;
-			size_t size;
-			current_bit = ReadNumUnsigned(&size, 16, current_bit, bytes);
-			header.size = size;
-			// Resize given buffer to size just read
-			// https://stackoverflow.com/a/9194117
-			bytes.resize((current_bit + (size + 7) & ~7) >> 3);
-			return current_bit;
-		}
-
 		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			*bit_out = bytes[current_bit >> 3] << (current_bit % 8) & 0b10000000;
 			return current_bit + 1;

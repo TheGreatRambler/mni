@@ -3,6 +3,7 @@
 #include <tinycode/decoding.hpp>
 #include <tinycode/encoding.hpp>
 #include <tinycode/tree.hpp>
+#include <tinycode/wasm/parser.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -28,11 +29,14 @@ namespace TinyCode {
 	};
 
 	namespace Wasm {
-		void Optimize(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names);
-		uint64_t OptimizeTiny(
-			std::vector<uint8_t>& in, std::unordered_set<std::string> kept_names, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		struct TeenyCodeMetadata {
+			std::string name;
+		};
+
+		void RemoveUnneccesary(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names);
+		TeenyCodeMetadata GetMetadata(std::vector<uint8_t>& wasm);
 		void Execute(std::vector<uint8_t>& wasm);
-		void FuzzTest();
+		void Execute2(std::vector<uint8_t>& wasm);
 	}
 
 	namespace Export {
