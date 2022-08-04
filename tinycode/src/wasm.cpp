@@ -23,6 +23,10 @@
 #include <wasm3.h>
 #include <wasmtime.h>
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 // Finds all reachable functions in wasm module
 // Based on https://github.com/WebAssembly/binaryen/blob/5881b541a4b276dcd5576aa065e4fb860531fc7b/src/ast_utils.h#L73
 class DirectCallGraphAnalyzer : public wasm::PostWalker<DirectCallGraphAnalyzer, wasm::Visitor<DirectCallGraphAnalyzer>> {
@@ -147,18 +151,33 @@ namespace TinyCode {
 		}
 
 		TeenyCodeMetadata GetMetadata(std::vector<uint8_t>& wasm) {
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Load engine");
+#endif
 			wasm_engine_t* engine = wasm_engine_new();
 
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Load store");
+#endif
 			wasmtime_store_t* store     = wasmtime_store_new(engine, NULL, NULL);
 			wasmtime_context_t* context = wasmtime_store_context(store);
 
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Load module");
+#endif
 			wasmtime_module_t* module = NULL;
 			wasmtime_error_t* error   = wasmtime_module_new(engine, wasm.data(), wasm.size(), &module);
 
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Load instance");
+#endif
 			wasm_trap_t* trap = NULL;
 			wasmtime_instance_t instance;
 			error = wasmtime_instance_new(context, module, NULL, 0, &instance, &trap);
 
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Load memory");
+#endif
 			wasmtime_extern_t memory_item;
 			if(!wasmtime_instance_export_get(context, &instance, "memory", strlen("memory"), &memory_item)) {
 				std::cout << "Could not retrieve \"memory\" from exports" << std::endl;
@@ -166,6 +185,9 @@ namespace TinyCode {
 			wasmtime_memory_t memory = memory_item.of.memory;
 			uint8_t* memory_base     = wasmtime_memory_data(context, &memory);
 
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Load teenycode_name");
+#endif
 			// teenycode_name
 			wasmtime_extern_t read_name;
 			if(!wasmtime_instance_export_get(context, &instance, "teenycode_name", strlen("teenycode_name"), &read_name)) {
@@ -179,6 +201,9 @@ namespace TinyCode {
 				.name = std::string((char*)(memory_base + name_addr_value)),
 			};
 
+#ifdef ANDROID
+			__android_log_write(ANDROID_LOG_ERROR, "TeenyCodes", "Delete engine");
+#endif
 			wasmtime_store_delete(store);
 			wasm_engine_delete(engine);
 

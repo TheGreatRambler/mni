@@ -23,10 +23,13 @@
 
 namespace TinyCode {
 	namespace Export {
-		void GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path) {
+		bool GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path) {
 			constexpr int pixel_size    = 10;
 			constexpr int margin_size   = 3;
 			constexpr int bottom_margin = 0; // 200
+
+			if(bytes.size() > 2953)
+				return false;
 
 			ZXing::QRCode::Writer writer;
 			writer.setMargin(margin_size);
@@ -35,6 +38,9 @@ namespace TinyCode {
 
 			std::wstring output(bytes.begin(), bytes.end());
 			auto matrix = writer.encode(output, 1, 1);
+
+			if(matrix.empty())
+				return false;
 
 			SkBitmap bitmap;
 			bitmap.allocPixels(SkImageInfo::Make(matrix.width() * pixel_size, matrix.height() * pixel_size + bottom_margin,
@@ -73,11 +79,17 @@ namespace TinyCode {
 			// success = SkPngEncoder::Encode(&dest, src, options);
 
 			SkPixmap src;
-			bool success = bitmap.peekPixels(&src);
+
+			if(!bitmap.peekPixels(&src))
+				return false;
+
 			SkFILEWStream dest(path.c_str());
 			SkPngEncoder::Options options;
 			options.fZLibLevel = 9;
-			success            = SkPngEncoder::Encode(&dest, src, options);
+
+			if(!SkPngEncoder::Encode(&dest, src, options))
+				return false;
+			return true;
 		}
 	}
 }

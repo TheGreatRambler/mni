@@ -40,7 +40,7 @@ namespace TinyCode {
 	}
 
 	namespace Export {
-		void GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path);
+		bool GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path);
 	}
 
 	namespace Import {

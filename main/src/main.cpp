@@ -68,7 +68,12 @@ int main(int argc, char** argv) {
 
 		if(!qr_path.empty()) {
 			start = std::chrono::high_resolution_clock::now();
-			TinyCode::Export::GenerateQRCode(size, out_optimized, 1000, 1000, qr_path);
+
+			if(!TinyCode::Export::GenerateQRCode(size, out_optimized, 1000, 1000, qr_path)) {
+				std::cerr << out_optimized.size() << " bytes is too large for a QR code, 2953 bytes is the max" << std::endl;
+				exit(1);
+			}
+
 			stop       = std::chrono::high_resolution_clock::now();
 			time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
 			fmt::print("QR code written ({}ms)\n", time_taken);

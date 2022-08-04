@@ -28,9 +28,11 @@ private const val CAMERA_PERMISSION_REQUEST_CODE = 1
 @ExperimentalGetImage
 class MainActivity : AppCompatActivity() {
 	private lateinit var binding: ActivityMainBinding
+	private lateinit var jniInterface: JniInterface
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
+		jniInterface = JniInterface()
 		binding = ActivityMainBinding.inflate(layoutInflater)
 		setContentView(binding.root)
 
@@ -154,11 +156,16 @@ class MainActivity : AppCompatActivity() {
 				.addOnSuccessListener { barcodeList ->
 					val barcode = barcodeList.getOrNull(0)
 
-					// `rawValue` is the decoded value of the barcode
-					barcode?.rawValue?.let { value ->
-						binding.bottomText.text =
-							getString(R.string.barcode_value, value) + " " + JniInterface().getAwesomeMessage()
+					barcode?.rawBytes?.let { qr ->
+						// Raw bytes of barcode
+						jniInterface.registerCode(qr)
+						binding.bottomText.text = jniInterface.getCodeName()
 					}
+
+					//barcode?.rawValue?.let { value ->
+					//	binding.bottomText.text =
+					//		getString(R.string.barcode_value, value) + " " + JniInterface().getAwesomeMessage()
+					//}
 				}
 				.addOnFailureListener {
 					// This failure will happen if the barcode scanning model

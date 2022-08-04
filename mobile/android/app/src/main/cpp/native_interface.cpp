@@ -1,9 +1,11 @@
 #include "native_interface.hpp"
 
-#include <tinycode.hpp>
-#include <vector>
+void NativeInterface::LoadCode(uint8_t* qr, size_t size) {
+	// Copy into memory
+	qr_bytes.assign(qr, qr + size);
+	meta = TinyCode::Wasm::GetMetadata(qr_bytes);
+}
 
-std::string NativeInterface::GetMessage() {
-	std::vector<uint8_t> test { 0x0A, 0x0B };
-	return TinyCode::Debug::PrintAsCArray(test);
+std::string& NativeInterface::GetCodeName() {
+	return meta.name;
 }
