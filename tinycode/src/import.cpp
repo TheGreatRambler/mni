@@ -9,7 +9,6 @@
 
 #include <BarcodeFormat.h>
 #include <BitMatrix.h>
-#include <CharacterSetECI.h>
 #include <MultiFormatWriter.h>
 #include <ReadBarcode.h>
 #include <SkBitmap.h>
@@ -34,18 +33,17 @@ namespace TinyCode {
 			gen->getPixels(gen->getInfo().makeColorSpace(nullptr), bitmap.getPixels(), bitmap.rowBytes());
 
 			ZXing::DecodeHints qrHints;
-			qrHints.setFormats(ZXing::BarcodeFormat::QR_CODE);
+			qrHints.setFormats(ZXing::BarcodeFormat::QRCode);
 
 			ZXing::Result result
 				= ZXing::ReadBarcode({ (uint8_t*)bitmap.pixmap().addr(), bitmap.width(), bitmap.height(), ZXing::ImageFormat::BGRX }, qrHints);
-			ZXing::DecodeStatus qrStatus = result.status();
 
-			if(qrStatus != ZXing::DecodeStatus::NoError) {
+			if(!result.isValid()) {
 				// Oh no
 			}
 
-			auto raw_bytes = result.rawBytes();
-			std::copy(raw_bytes.begin() + 4, raw_bytes.end(), std::back_inserter(bytes));
+			auto qr_bytes = result.bytes();
+			std::copy(qr_bytes.begin(), qr_bytes.end(), std::back_inserter(bytes));
 		}
 	}
 }

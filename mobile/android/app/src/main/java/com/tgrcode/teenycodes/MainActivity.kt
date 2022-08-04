@@ -95,15 +95,7 @@ class MainActivity : AppCompatActivity() {
 			ones listed here, and you may not need to offer support for all of these. You should only
 			specify the ones you need */
 			val options = BarcodeScannerOptions.Builder().setBarcodeFormats(
-				Barcode.FORMAT_CODE_128,
-				Barcode.FORMAT_CODE_39,
-				Barcode.FORMAT_CODE_93,
-				Barcode.FORMAT_EAN_8,
-				Barcode.FORMAT_EAN_13,
-				Barcode.FORMAT_QR_CODE,
-				Barcode.FORMAT_UPC_A,
-				Barcode.FORMAT_UPC_E,
-				Barcode.FORMAT_PDF417
+				Barcode.FORMAT_QR_CODE
 			).build()
 
 			// getClient() creates a new instance of the MLKit barcode scanner with the specified options
@@ -157,7 +149,7 @@ class MainActivity : AppCompatActivity() {
 					val barcode = barcodeList.getOrNull(0)
 
 					barcode?.rawBytes?.let { qr ->
-						// Raw bytes of barcode
+						// Raw bytes of qr code
 						jniInterface.registerCode(qr)
 						binding.bottomText.text = jniInterface.getCodeName()
 					}

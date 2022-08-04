@@ -31,13 +31,22 @@ namespace TinyCode {
 				return 0;
 			}
 
-			// std::bit_width is in C++20 but Android does not fully support C++20
+// std::bit_width is in C++20 but Android does not fully support C++20
+#ifdef ANDROID
 			if constexpr(std::is_signed<T>::value) {
 				typedef typename std::make_unsigned<T>::type unsigned_t;
-				return std::numeric_limits<unsigned_t>::digits - std::countl_zero((unsigned_t)std::abs(num));
+				return std::numeric_limits<unsigned_t>::digits - std::__countl_zero((unsigned_t)std::abs(num));
 			} else {
-				return std::numeric_limits<T>::digits - std::countl_zero(num);
+				return std::numeric_limits<T>::digits - std::__countl_zero(num);
 			}
+#else
+			if constexpr(std::is_signed<T>::value) {
+				typedef typename std::make_unsigned<T>::type unsigned_t;
+				return std::bit_width((unsigned_t)std::abs(num));
+			} else {
+				return std::bit_width(num);
+			}
+#endif
 		}
 
 		template <typename T> uint8_t GetRequiredLEBBits(T num, uint8_t multiple_bits) {

@@ -7,6 +7,6 @@ class JniInterface {
 		}
 	}
 
-	external fun registerCode(qr: ByteArray): Void
+	external fun registerCode(qr: ByteArray): Boolean
 	external fun getCodeName(): String
 }

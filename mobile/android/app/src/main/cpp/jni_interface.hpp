@@ -5,6 +5,6 @@
 extern "C" {
 JNIEnv* GetJniEnv();
 
-JNI_METHOD(void, registerCode)(JNIEnv* env, jclass, jbyteArray qr);
+JNI_METHOD(jboolean, registerCode)(JNIEnv* env, jclass, jbyteArray qr);
 JNI_METHOD(jstring, getCodeName)(JNIEnv* env, jclass);
 }

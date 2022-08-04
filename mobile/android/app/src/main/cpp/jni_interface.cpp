@@ -20,11 +20,12 @@ jint JNI_OnLoad(JavaVM* vm, void*) {
 	return JNI_VERSION_1_6;
 }
 
-JNI_METHOD(void, registerCode)(JNIEnv* env, jclass, jbyteArray qr) {
+JNI_METHOD(jboolean, registerCode)(JNIEnv* env, jclass, jbyteArray qr) {
 	jsize qr_size     = env->GetArrayLength(qr);
 	uint8_t* qr_bytes = (uint8_t*)env->GetPrimitiveArrayCritical(qr, NULL);
 	interface->LoadCode(qr_bytes, qr_size);
 	env->ReleasePrimitiveArrayCritical(qr, qr_bytes, 0);
+	return true;
 }
 
 JNI_METHOD(jstring, getCodeName)(JNIEnv* env, jclass) {
