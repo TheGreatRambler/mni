@@ -12,14 +12,19 @@ namespace TinyCode {
 		static constexpr uint8_t DEFAULT_LEB_MULTIPLE = 7;
 
 		uint64_t Read1Bit(bool* bit_out, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t ReadFloat(float* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t ReadDouble(double* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t ReadFloat(float* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit,
+			std::vector<uint8_t>& bytes);
+		uint64_t ReadDouble(double* num_out, uint8_t removed_mantissa_bits, uint64_t current_bit,
+			std::vector<uint8_t>& bytes);
 
-		template <typename T> uint64_t ReadPrependSize(T* size_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadPrependSize(T* size_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			return ReadLEBUnsigned(size_out, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
 		}
 
-		template <typename T> uint64_t ReadNum(T* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadNum(
+			T* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
 			bool is_negative;
@@ -42,7 +47,9 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadNumUnsigned(T* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadNumUnsigned(
+			T* num_out, uint8_t bit_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
 			T out = 0;
@@ -58,7 +65,8 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadTaggedNum(T* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadTaggedNum(T* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
 			uint8_t bit_size;
@@ -66,7 +74,9 @@ namespace TinyCode {
 			return ReadNum(num_out, bit_size, current_bit, bytes);
 		}
 
-		template <typename T> uint64_t ReadTaggedNumUnsigned(T* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadTaggedNumUnsigned(
+			T* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
 			uint8_t bit_size;
@@ -74,7 +84,9 @@ namespace TinyCode {
 			return ReadNumUnsigned(num_out, bit_size, current_bit, bytes);
 		}
 
-		template <typename T> uint64_t ReadLEB(T* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadLEB(
+			T* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
 			bool is_negative;
@@ -101,7 +113,9 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadLEBUnsigned(T* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadLEBUnsigned(
+			T* num_out, uint8_t multiple_bits, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			static_assert(std::is_integral<T>::value, "Must be passed integral type");
 
 			*num_out               = 0;
@@ -122,7 +136,9 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadHuffmanHeader(TinyCode::Tree::Node<T>* root, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadHuffmanHeader(
+			TinyCode::Tree::Node<T>* root, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			std::vector<T> elements;
 			current_bit = ReadSimpleIntegerList(elements, current_bit, bytes);
 
@@ -130,7 +146,8 @@ namespace TinyCode {
 				uint64_t representation;
 				uint8_t bit_size;
 				current_bit = ReadNumUnsigned(&bit_size, 6, current_bit, bytes);
-				current_bit = ReadNumUnsigned(&representation, (uint8_t)bit_size, current_bit, bytes);
+				current_bit
+					= ReadNumUnsigned(&representation, (uint8_t)bit_size, current_bit, bytes);
 
 				TinyCode::Tree::Node<T>* current_root = root;
 				for(int8_t bit = bit_size - 1; bit > -1; bit--) {
@@ -156,7 +173,8 @@ namespace TinyCode {
 		}
 
 		template <typename T>
-		uint64_t ReadHuffmanValue(TinyCode::Tree::Node<T>* root, T* num_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		uint64_t ReadHuffmanValue(TinyCode::Tree::Node<T>* root, T* num_out, uint64_t current_bit,
+			std::vector<uint8_t>& bytes) {
 			while(true) {
 				if(root->left == NULL && root->right == NULL) {
 					// Leaf with data
@@ -176,8 +194,8 @@ namespace TinyCode {
 		}
 
 		template <typename T>
-		uint64_t ReadHuffmanList(
-			TinyCode::Tree::Node<T>* root, std::vector<T>& data_out, size_t data_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		uint64_t ReadHuffmanList(TinyCode::Tree::Node<T>* root, std::vector<T>& data_out,
+			size_t data_size, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			for(size_t i = 0; i < data_size; i++) {
 				T num;
 				ReadHuffmanValue(root, &num, current_bit, bytes);
@@ -187,7 +205,9 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadLEBIntegerList(std::vector<T>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadLEBIntegerList(
+			std::vector<T>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			size_t list_size;
 			current_bit = ReadLEBUnsigned(&list_size, DEFAULT_LEB_MULTIPLE, current_bit, bytes);
 			bool every_element_positive;
@@ -206,7 +226,9 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadSimpleIntegerList(std::vector<T>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadSimpleIntegerList(
+			std::vector<T>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			uint8_t list_type;
 			current_bit = ReadNumUnsigned(&list_type, Encoding::LIST_TYPE_BITS, current_bit, bytes);
 			size_t list_size;
@@ -269,13 +291,15 @@ namespace TinyCode {
 			return current_bit;
 		}
 
-		template <typename T> uint64_t ReadHuffmanIntegerList(std::vector<T>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		template <typename T>
+		uint64_t ReadHuffmanIntegerList(
+			std::vector<T>& data_out, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			size_t list_size;
 			current_bit = ReadNumUnsigned(&list_size, Encoding::LIST_SIZE_BITS, current_bit, bytes);
 
 			TinyCode::Tree::Node<T>* root = new TinyCode::Tree::Node<T>();
 			current_bit                   = ReadHuffmanHeader(root, current_bit, bytes);
-			current_bit                   = ReadHuffmanList(root, data_out, list_size, current_bit, bytes);
+			current_bit = ReadHuffmanList(root, data_out, list_size, current_bit, bytes);
 
 			return current_bit;
 		}

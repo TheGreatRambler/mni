@@ -6,23 +6,24 @@
 #include <BarcodeFormat.h>
 #include <BitMatrix.h>
 #include <MultiFormatWriter.h>
-#include <SkBitmap.h>
-#include <SkCanvas.h>
-#include <SkFont.h>
-#include <SkGraphics.h>
-#include <SkImage.h>
-#include <SkImageEncoder.h>
-#include <SkPngEncoder.h>
-#include <SkTextBlob.h>
-#include <SkTypeface.h>
 #include <TextUtfEncoding.h>
+#include <core/SkBitmap.h>
+#include <core/SkCanvas.h>
+#include <core/SkFont.h>
+#include <core/SkGraphics.h>
+#include <core/SkImage.h>
+#include <core/SkImageEncoder.h>
+#include <core/SkTextBlob.h>
+#include <core/SkTypeface.h>
+#include <encode/SkPngEncoder.h>
 #include <iostream>
 #include <qrcode/QRErrorCorrectionLevel.h>
 #include <qrcode/QRWriter.h>
 
 namespace TinyCode {
 	namespace Export {
-		bool GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path) {
+		bool GenerateQRCode(
+			uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path) {
 			constexpr int pixel_size    = 10;
 			constexpr int margin_size   = 3;
 			constexpr int bottom_margin = 0; // 200
@@ -42,8 +43,10 @@ namespace TinyCode {
 				return false;
 
 			SkBitmap bitmap;
-			bitmap.allocPixels(SkImageInfo::Make(matrix.width() * pixel_size, matrix.height() * pixel_size + bottom_margin,
-								   SkColorType::kRGB_888x_SkColorType, SkAlphaType::kOpaque_SkAlphaType),
+			bitmap.allocPixels(
+				SkImageInfo::Make(matrix.width() * pixel_size,
+					matrix.height() * pixel_size + bottom_margin,
+					SkColorType::kRGB_888x_SkColorType, SkAlphaType::kOpaque_SkAlphaType),
 				0);
 
 			SkCanvas canvas(bitmap);
@@ -55,7 +58,9 @@ namespace TinyCode {
 			for(int y = 0; y < matrix.height(); y++) {
 				for(int x = 0; x < matrix.width(); x++) {
 					if(matrix.get(x, y)) {
-						canvas.drawRect(SkRect::MakeXYWH(x * pixel_size, y * pixel_size, pixel_size, pixel_size), pixel_paint);
+						canvas.drawRect(SkRect::MakeXYWH(
+											x * pixel_size, y * pixel_size, pixel_size, pixel_size),
+							pixel_paint);
 					}
 				}
 			}
@@ -67,8 +72,8 @@ namespace TinyCode {
 
 						sk_sp<SkTextBlob> blob = SkTextBlob::MakeFromString("TinyCode", text_font);
 						canvas.drawTextBlob(
-							blob, pixel_size * margin_size, pixel_size * (matrix.height() + margin_size * 5),
-			   pixel_paint);
+							blob, pixel_size * margin_size, pixel_size * (matrix.height() +
+			   margin_size * 5), pixel_paint);
 							*/
 
 			// SkPixmap src;

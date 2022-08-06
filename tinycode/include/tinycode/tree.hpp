@@ -51,7 +51,9 @@ namespace TinyCode {
 			PrintTree<T, P>(root->right, str + "1");
 		}
 
-		template <typename T> void GenerateHuffman(std::vector<T> data, std::unordered_map<T, NodeRepresentation>& rep_map) {
+		template <typename T>
+		void GenerateHuffman(
+			std::vector<T> data, std::unordered_map<T, NodeRepresentation>& rep_map) {
 			std::unordered_map<T, Node<T>> element_frequencies;
 			for(T num : data) {
 				if(element_frequencies.count(num)) {
@@ -65,7 +67,8 @@ namespace TinyCode {
 		}
 
 		template <typename T>
-		void GenerateHuffmanFrequencies(std::unordered_map<T, Node<T>>& frequencies, std::unordered_map<T, NodeRepresentation>& rep_map) {
+		void GenerateHuffmanFrequencies(std::unordered_map<T, Node<T>>& frequencies,
+			std::unordered_map<T, NodeRepresentation>& rep_map) {
 			std::vector<Node<T>> element_frequencies_list;
 
 			for(auto& element : frequencies) {
@@ -77,14 +80,17 @@ namespace TinyCode {
 			FreeTree(root);
 		}
 
-		template <typename T> void BuildRepresentation(Node<T>* root, NodeRepresentation rep, std::unordered_map<T, NodeRepresentation>& rep_map) {
+		template <typename T>
+		void BuildRepresentation(Node<T>* root, NodeRepresentation rep,
+			std::unordered_map<T, NodeRepresentation>& rep_map) {
 			if(!root) {
 				return;
 			}
 
 			if(root->data != 0) {
 				// std::string rep_string = std::bitset<64>(rep.representation).to_string();
-				// std::cout << (char)root->data << ": " << rep_string.substr(rep_string.size() - rep.bit_size)
+				// std::cout << (char)root->data << ": " << rep_string.substr(rep_string.size() -
+				// rep.bit_size)
 				//		  << std::endl;
 				// root->representation.representation = rep.representation;
 				// root->representation.bit_size       = rep.bit_size;
@@ -92,16 +98,23 @@ namespace TinyCode {
 			}
 
 			// Further build representation
-			BuildRepresentation(root->left, NodeRepresentation { rep.representation << 1, (uint8_t)(rep.bit_size + 1) }, rep_map);
-			BuildRepresentation(root->right, NodeRepresentation { (rep.representation << 1) | 0x1, (uint8_t)(rep.bit_size + 1) }, rep_map);
+			BuildRepresentation(root->left,
+				NodeRepresentation { rep.representation << 1, (uint8_t)(rep.bit_size + 1) },
+				rep_map);
+			BuildRepresentation(root->right,
+				NodeRepresentation { (rep.representation << 1) | 0x1, (uint8_t)(rep.bit_size + 1) },
+				rep_map);
 		}
 
-		template <typename T> void BuildRepresentation(Node<T>* root, std::unordered_map<T, NodeRepresentation>& rep_map) {
+		template <typename T>
+		void BuildRepresentation(
+			Node<T>* root, std::unordered_map<T, NodeRepresentation>& rep_map) {
 			BuildRepresentation(root, NodeRepresentation { 0, 0 }, rep_map);
 		}
 
 		template <typename T> Node<T>* BuildHuffman(std::vector<Node<T>>& nodes) {
-			auto node_compare = [](Node<T>* left, Node<T>* right) { return left->freq > right->freq; };
+			auto node_compare
+				= [](Node<T>* left, Node<T>* right) { return left->freq > right->freq; };
 			std::priority_queue<Node<T>*, std::vector<Node<T>*>, decltype(node_compare)> min_heap;
 
 			for(const Node<T>& node : nodes) {
@@ -142,7 +155,9 @@ namespace TinyCode {
 namespace std {
 	template <> struct hash<TinyCode::Tree::NodeRepresentation> {
 		std::size_t operator()(const TinyCode::Tree::NodeRepresentation& k) const {
-			return ((std::hash<uint64_t>()(k.representation) ^ (std::hash<uint8_t>()(k.bit_size) << 1)) >> 1);
+			return (
+				(std::hash<uint64_t>()(k.representation) ^ (std::hash<uint8_t>()(k.bit_size) << 1))
+				>> 1);
 		}
 	};
 }

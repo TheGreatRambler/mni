@@ -11,16 +11,16 @@
 #include <BitMatrix.h>
 #include <MultiFormatWriter.h>
 #include <ReadBarcode.h>
-#include <SkBitmap.h>
-#include <SkCanvas.h>
-#include <SkColorSpace.h>
-#include <SkGraphics.h>
-#include <SkImage.h>
-#include <SkImageEncoder.h>
-#include <SkImageGenerator.h>
-#include <SkPngEncoder.h>
-#include <SkString.h>
 #include <TextUtfEncoding.h>
+#include <core/SkBitmap.h>
+#include <core/SkCanvas.h>
+#include <core/SkColorSpace.h>
+#include <core/SkGraphics.h>
+#include <core/SkImage.h>
+#include <core/SkImageEncoder.h>
+#include <core/SkImageGenerator.h>
+#include <core/SkString.h>
+#include <encode/SkPngEncoder.h>
 
 namespace TinyCode {
 	namespace Import {
@@ -30,13 +30,16 @@ namespace TinyCode {
 			SkBitmap bitmap;
 			bitmap.allocPixels(gen->getInfo());
 			// Always generates BGRA
-			gen->getPixels(gen->getInfo().makeColorSpace(nullptr), bitmap.getPixels(), bitmap.rowBytes());
+			gen->getPixels(
+				gen->getInfo().makeColorSpace(nullptr), bitmap.getPixels(), bitmap.rowBytes());
 
 			ZXing::DecodeHints qrHints;
 			qrHints.setFormats(ZXing::BarcodeFormat::QRCode);
 
 			ZXing::Result result
-				= ZXing::ReadBarcode({ (uint8_t*)bitmap.pixmap().addr(), bitmap.width(), bitmap.height(), ZXing::ImageFormat::BGRX }, qrHints);
+				= ZXing::ReadBarcode({ (uint8_t*)bitmap.pixmap().addr(), bitmap.width(),
+										 bitmap.height(), ZXing::ImageFormat::BGRX },
+					qrHints);
 
 			if(!result.isValid()) {
 				// Oh no

@@ -16,7 +16,8 @@ namespace TinyCode {
 		std::string Print(uint64_t size, std::vector<uint8_t>& bytes, bool with_delimiter);
 		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes);
 		std::string PrintAsCArray(std::vector<uint8_t>& bytes);
-		bool AreIdentical(std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size);
+		bool AreIdentical(
+			std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size);
 	}
 
 	class Parser {
@@ -33,14 +34,16 @@ namespace TinyCode {
 			std::string name;
 		};
 
-		void RemoveUnneccesary(std::vector<uint8_t>& in, std::vector<uint8_t>& out, std::unordered_set<std::string> kept_names);
+		void RemoveUnneccesary(std::vector<uint8_t>& in, std::vector<uint8_t>& out,
+			std::unordered_set<std::string> kept_names);
 		TeenyCodeMetadata GetMetadata(std::vector<uint8_t>& wasm);
 		void Execute(std::vector<uint8_t>& wasm);
 		void Execute2(std::vector<uint8_t>& wasm);
 	}
 
 	namespace Export {
-		bool GenerateQRCode(uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path);
+		bool GenerateQRCode(
+			uint64_t size, std::vector<uint8_t>& bytes, int width, int height, std::string path);
 	}
 
 	namespace Import {

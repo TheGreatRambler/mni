@@ -80,6 +80,9 @@ set(WASMTIME_INCLUDES
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasmtime)
 
+# SDL2 for the desktop runtime, mobile TODO
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL ${CMAKE_CURRENT_BINARY_DIR}/third_party/SDL)
+
 set(tinycode_SOURCES
 	src/encoding.cpp
 	src/decoding.cpp
@@ -89,6 +92,7 @@ set(tinycode_SOURCES
 	src/import.cpp
 	src/wasm.cpp
 	src/wasm/parser.cpp
+	src/wasm/runtime.cpp
 )
 
 add_library(tinycode STATIC ${tinycode_SOURCES})
@@ -96,11 +100,11 @@ set_target_properties(tinycode PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_options(tinycode PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-braces)
 
 include_directories(${WASMTIME_INCLUDES})
-include_directories(ZXing ${SKIA_DIR} ${SKIA_DIR}/include/core ${SKIA_DIR}/include/encode ${BINARYEN_DIR}/src m3)
+include_directories(ZXing ${SKIA_DIR} ${SKIA_DIR}/include ${BINARYEN_DIR}/src m3)
 
 if(WIN32)
-	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen m3 gdi32 opengl32)
+	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen SDL2main SDL2-static m3 gdi32 opengl32)
 else()
 	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen m3)
 endif()
-target_include_directories(tinycode PUBLIC include)
+target_include_directories(tinycode PUBLIC include SDL2-static)

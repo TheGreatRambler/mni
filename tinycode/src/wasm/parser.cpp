@@ -181,7 +181,8 @@ namespace TinyCode {
 		}
 
 		void OptimizedIO::WriteULEB(uint64_t num) {
-			current_bit = TinyCode::Encoding::WriteLEBUnsigned(num, leb_multiple, current_bit, bytes);
+			current_bit
+				= TinyCode::Encoding::WriteLEBUnsigned(num, leb_multiple, current_bit, bytes);
 		}
 
 		int64_t OptimizedIO::ReadLEB() {
@@ -192,7 +193,8 @@ namespace TinyCode {
 
 		uint64_t OptimizedIO::ReadULEB() {
 			uint64_t out;
-			current_bit = TinyCode::Decoding::ReadLEBUnsigned(&out, leb_multiple, current_bit, bytes);
+			current_bit
+				= TinyCode::Decoding::ReadLEBUnsigned(&out, leb_multiple, current_bit, bytes);
 			return out;
 		}
 
@@ -265,10 +267,13 @@ namespace TinyCode {
 		void OptimizedIO::PrependSize() {
 			// Move entire module
 			size           = current_bit - original_current_bit;
-			auto size_bits = TinyCode::Encoding::GetRequiredLEBBits(current_bit - original_current_bit, leb_multiple);
-			current_bit    = TinyCode::Encoding::MoveBits(original_current_bit, current_bit, original_current_bit + size_bits, bytes);
+			auto size_bits = TinyCode::Encoding::GetRequiredLEBBits(
+				current_bit - original_current_bit, leb_multiple);
+			current_bit = TinyCode::Encoding::MoveBits(
+				original_current_bit, current_bit, original_current_bit + size_bits, bytes);
 			// Write size at beginning
-			original_current_bit = TinyCode::Encoding::WriteLEBUnsigned(size, leb_multiple, original_current_bit, bytes);
+			original_current_bit = TinyCode::Encoding::WriteLEBUnsigned(
+				size, leb_multiple, original_current_bit, bytes);
 		}
 
 		static std::unordered_map<wasm::BinaryConsts::ASTNodes, std::string> instruction_to_name = {
@@ -649,7 +654,8 @@ namespace TinyCode {
 			std::vector<uint8_t> data;
 		};
 
-		uint64_t ConvertWasm(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes, ParsingMode in, ParsingMode out) {
+		uint64_t ConvertWasm(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit,
+			std::vector<uint8_t>& bytes, ParsingMode in, ParsingMode out) {
 			IO io(wasm_bytes);
 			OptimizedIO opt_io(bytes, current_bit);
 
@@ -1126,10 +1132,14 @@ namespace TinyCode {
 			auto HandleV128 = [&]() {
 				switch(mode) {
 				case READ_NORMAL: {
-					uint64_t lower = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16) | (io.ReadU8() << 24) | (io.ReadU8() << 32)
-									 | (io.ReadU8() << 40) | (io.ReadU8() << 48) | (io.ReadU8() << 56);
-					uint64_t upper = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16) | (io.ReadU8() << 24) | (io.ReadU8() << 32)
-									 | (io.ReadU8() << 40) | (io.ReadU8() << 48) | (io.ReadU8() << 56);
+					uint64_t lower = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16)
+									 | (io.ReadU8() << 24) | (io.ReadU8() << 32)
+									 | (io.ReadU8() << 40) | (io.ReadU8() << 48)
+									 | (io.ReadU8() << 56);
+					uint64_t upper = io.ReadU8() | (io.ReadU8() << 8) | (io.ReadU8() << 16)
+									 | (io.ReadU8() << 24) | (io.ReadU8() << 32)
+									 | (io.ReadU8() << 40) | (io.ReadU8() << 48)
+									 | (io.ReadU8() << 56);
 					items.push_back(new WasmI128 { { I128 }, lower, upper });
 				} break;
 				case WRITE_NORMAL: {
@@ -1246,7 +1256,8 @@ namespace TinyCode {
 				} break;
 				case READ_OPTIMIZED: {
 					size_t string_size = opt_io.ReadULEB();
-					std::string str    = string_size == 0 ? std::string() : opt_io.ReadString(string_size);
+					std::string str
+						= string_size == 0 ? std::string() : opt_io.ReadString(string_size);
 					items.push_back(new WasmString { { STRING }, str });
 					return str;
 				} break;
@@ -1440,12 +1451,14 @@ namespace TinyCode {
 								break;
 							}
 
-							if(code2 > wasm::BinaryConsts::AtomicRMWOps_Begin && code2 < wasm::BinaryConsts::AtomicRMWOps_End) {
+							if(code2 > wasm::BinaryConsts::AtomicRMWOps_Begin
+								&& code2 < wasm::BinaryConsts::AtomicRMWOps_End) {
 								// Includes a range of atomic RMW instructions
 								HandleMemoryOp();
 							}
 
-							if(code2 > wasm::BinaryConsts::AtomicCmpxchgOps_Begin && code2 < wasm::BinaryConsts::AtomicCmpxchgOps_End) {
+							if(code2 > wasm::BinaryConsts::AtomicCmpxchgOps_Begin
+								&& code2 < wasm::BinaryConsts::AtomicCmpxchgOps_End) {
 								// Includes a range of CMP instructions
 								HandleMemoryOp();
 							}
@@ -1761,7 +1774,8 @@ namespace TinyCode {
 					}
 				} else {
 					if(mode == WRITE_NORMAL) {
-						// Append magic and version, required in the webassembly spec
+						// Append magic and version, required in the webassembly
+						// spec
 						io.WriteU32(wasm::BinaryConsts::Magic);
 						io.WriteU32(wasm::BinaryConsts::Version);
 					}
@@ -1855,7 +1869,8 @@ namespace TinyCode {
 					}
 
 					if(mode == WRITE_OPTIMIZED) {
-						// Prepend size so end can be determined later during reading
+						// Prepend size so end can be determined later during
+						// reading
 						opt_io.PrependSize();
 					}
 				}
@@ -1874,11 +1889,13 @@ namespace TinyCode {
 			return opt_io.GetCurrentBit();
 		}
 
-		uint64_t NormalToOptimized(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		uint64_t NormalToOptimized(
+			std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			return ConvertWasm(wasm_bytes, current_bit, bytes, READ_NORMAL, WRITE_OPTIMIZED);
 		}
 
-		uint64_t OptimizedToNormal(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+		uint64_t OptimizedToNormal(
+			std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			return ConvertWasm(wasm_bytes, current_bit, bytes, READ_OPTIMIZED, WRITE_NORMAL);
 		}
 	}

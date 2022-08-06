@@ -42,7 +42,7 @@ namespace TinyCode {
 
 		private:
 			std::vector<uint8_t>& bytes;
-			size_t i = 0;
+			size_t i { 0 };
 		};
 
 		class OptimizedIO {
@@ -98,8 +98,8 @@ namespace TinyCode {
 			std::vector<uint8_t>& bytes;
 			uint64_t original_current_bit;
 			uint64_t current_bit;
-			uint64_t size        = 0;
-			uint8_t leb_multiple = 5;
+			uint64_t size { 0 };
+			uint8_t leb_multiple { 5 };
 		};
 
 		enum ParsingMode {
@@ -109,7 +109,9 @@ namespace TinyCode {
 			WRITE_OPTIMIZED,
 		};
 
-		uint64_t NormalToOptimized(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes);
-		uint64_t OptimizedToNormal(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t NormalToOptimized(
+			std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes);
+		uint64_t OptimizedToNormal(
+			std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes);
 	}
 }

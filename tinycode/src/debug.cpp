@@ -23,7 +23,8 @@ namespace TinyCode {
 		}
 
 		std::string PrintAsCArray(uint64_t size, std::vector<uint8_t>& bytes) {
-			constexpr char hexmap[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+			constexpr char hexmap[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+				'C', 'D', 'E', 'F' };
 			uint64_t current_size   = 0;
 			std::string output      = "{";
 			for(uint8_t byte : bytes) {
@@ -45,7 +46,8 @@ namespace TinyCode {
 			return PrintAsCArray(bytes.size() * 8, bytes);
 		}
 
-		bool AreIdentical(std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size) {
+		bool AreIdentical(
+			std::vector<uint8_t>& bytes1, std::vector<uint8_t>& bytes2, uint64_t size) {
 			for(int i = 0; i < (size >> 3); i++) {
 				if(bytes1[i] != bytes2[i]) {
 					return false;

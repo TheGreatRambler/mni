@@ -25,12 +25,13 @@ TEST(Encoding, MoveBits) {
 			current_bit = TinyCode::Encoding::Write1Bit(bit_dist(rng), current_bit, bytes);
 		}
 
-		uint8_t src_shift        = byte_dist(rng);
-		uint8_t dest_shift       = byte_dist(rng) + 8;
-		std::string pre_moved    = TinyCode::Debug::Print(current_bit, bytes, false).substr(src_shift);
-		std::string pre_unmoved  = TinyCode::Debug::Print(dest_shift, bytes, false);
-		current_bit              = TinyCode::Encoding::MoveBits(src_shift, current_bit, dest_shift, bytes);
-		std::string post_moved   = TinyCode::Debug::Print(current_bit, bytes, false).substr(dest_shift);
+		uint8_t src_shift     = byte_dist(rng);
+		uint8_t dest_shift    = byte_dist(rng) + 8;
+		std::string pre_moved = TinyCode::Debug::Print(current_bit, bytes, false).substr(src_shift);
+		std::string pre_unmoved = TinyCode::Debug::Print(dest_shift, bytes, false);
+		current_bit = TinyCode::Encoding::MoveBits(src_shift, current_bit, dest_shift, bytes);
+		std::string post_moved
+			= TinyCode::Debug::Print(current_bit, bytes, false).substr(dest_shift);
 		std::string post_unmoved = TinyCode::Debug::Print(dest_shift, bytes, false);
 
 		EXPECT_STREQ(pre_moved.c_str(), post_moved.c_str());
@@ -45,17 +46,20 @@ TEST(Encoding, MoveBits) {
 			current_bit = TinyCode::Encoding::Write1Bit(bit_dist(rng), current_bit, bytes);
 		}
 
-		uint64_t old                   = current_bit;
-		uint8_t src_shift              = byte_dist(rng) + 8;
-		uint8_t dest_shift             = byte_dist(rng);
-		uint64_t right_unmoved_start   = current_bit - src_shift + dest_shift;
-		std::string pre_moved          = TinyCode::Debug::Print(current_bit, bytes, false).substr(src_shift);
-		std::string pre_unmoved_right  = TinyCode::Debug::Print(current_bit, bytes, false).substr(right_unmoved_start);
-		std::string pre_unmoved_left   = TinyCode::Debug::Print(dest_shift, bytes, false);
-		current_bit                    = TinyCode::Encoding::MoveBits(src_shift, current_bit, dest_shift, bytes);
-		std::string post_moved         = TinyCode::Debug::Print(current_bit, bytes, false).substr(dest_shift);
-		std::string post_unmoved_right = TinyCode::Debug::Print(old, bytes, false).substr(right_unmoved_start);
-		std::string post_unmoved_left  = TinyCode::Debug::Print(dest_shift, bytes, false);
+		uint64_t old                 = current_bit;
+		uint8_t src_shift            = byte_dist(rng) + 8;
+		uint8_t dest_shift           = byte_dist(rng);
+		uint64_t right_unmoved_start = current_bit - src_shift + dest_shift;
+		std::string pre_moved = TinyCode::Debug::Print(current_bit, bytes, false).substr(src_shift);
+		std::string pre_unmoved_right
+			= TinyCode::Debug::Print(current_bit, bytes, false).substr(right_unmoved_start);
+		std::string pre_unmoved_left = TinyCode::Debug::Print(dest_shift, bytes, false);
+		current_bit = TinyCode::Encoding::MoveBits(src_shift, current_bit, dest_shift, bytes);
+		std::string post_moved
+			= TinyCode::Debug::Print(current_bit, bytes, false).substr(dest_shift);
+		std::string post_unmoved_right
+			= TinyCode::Debug::Print(old, bytes, false).substr(right_unmoved_start);
+		std::string post_unmoved_left = TinyCode::Debug::Print(dest_shift, bytes, false);
 
 		EXPECT_STREQ(pre_moved.c_str(), post_moved.c_str());
 		EXPECT_STREQ(pre_unmoved_right.c_str(), post_unmoved_right.c_str());
