@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 
 		std::vector<uint8_t> out;
 		start = std::chrono::high_resolution_clock::now();
-		TinyCode::Wasm::RemoveUnneccesary(wasm_bytes, out, { "teenycode_name" });
+		TinyCode::Wasm::RemoveUnneccesary(wasm_bytes, out, TinyCode::Wasm::DEFINED_FUNCTIONS);
 		stop       = std::chrono::high_resolution_clock::now();
 		time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
 		fmt::print("Purged wasm: {} bytes ({}ms)\n", out.size(), time_taken);
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 		fmt::print("Input wasm: {} bytes ({}ms)\n", wasm_bytes.size(), time_taken);
 
 		start         = std::chrono::high_resolution_clock::now();
-		auto metadata = TinyCode::Wasm::GetMetadata(wasm_bytes);
+		auto metadata = TinyCode::Wasm::Runtime(wasm_bytes).Meta();
 		stop          = std::chrono::high_resolution_clock::now();
 		time_taken    = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
 		fmt::print("Output: ({}ms)\n", time_taken);

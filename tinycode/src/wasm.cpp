@@ -37,7 +37,7 @@ public:
 		while(queue.size()) {
 			auto* curr = queue.back();
 			queue.pop_back();
-			if(reachable.count(curr) == 0) {
+			if(reachable.count(curr) == 0 && curr->body) {
 				reachable.insert(curr);
 				walk(curr->body);
 			}
@@ -151,56 +151,6 @@ namespace TinyCode {
 			writer.write();
 
 			std::copy(output_buffer.begin(), output_buffer.end(), std::back_inserter(out));
-		}
-
-		TeenyCodeMetadata GetMetadata(std::vector<uint8_t>& wasm) {
-			wasm_engine_t* engine = wasm_engine_new();
-
-			wasmtime_store_t* store     = wasmtime_store_new(engine, NULL, NULL);
-			wasmtime_context_t* context = wasmtime_store_context(store);
-
-			wasmtime_module_t* module = NULL;
-			wasmtime_error_t* error
-				= wasmtime_module_new(engine, wasm.data(), wasm.size(), &module);
-
-			wasm_trap_t* trap = NULL;
-			wasmtime_instance_t instance;
-			error = wasmtime_instance_new(context, module, NULL, 0, &instance, &trap);
-
-			uint8_t* memory_base = nullptr;
-
-			char* item_name;
-			size_t item_name_size;
-			wasmtime_extern_t item;
-			size_t export_index = 0;
-			while(wasmtime_instance_export_nth(
-				context, &instance, export_index, &item_name, &item_name_size, &item)) {
-				if(item.kind == WASMTIME_EXTERN_MEMORY) {
-					wasmtime_memory_t memory = item.of.memory;
-					memory_base              = wasmtime_memory_data(context, &memory);
-				}
-				export_index++;
-			}
-
-			// teenycode_name
-			wasmtime_extern_t read_name;
-			if(!wasmtime_instance_export_get(
-				   context, &instance, "teenycode_name", strlen("teenycode_name"), &read_name)) {
-				std::cerr << "Could not retrieve \"teenycode_name\" from exports" << std::endl;
-				return {};
-			}
-			wasmtime_val_t name_addr;
-			error = wasmtime_func_call(context, &read_name.of.func, NULL, 0, &name_addr, 1, &trap);
-			int name_addr_value = name_addr.of.i32;
-
-			TeenyCodeMetadata metadata = {
-				.name = std::string((char*)(memory_base + name_addr_value)),
-			};
-
-			wasmtime_store_delete(store);
-			wasm_engine_delete(engine);
-
-			return metadata;
 		}
 	}
 }

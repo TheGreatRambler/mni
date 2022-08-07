@@ -4,6 +4,7 @@
 #include <tinycode/encoding.hpp>
 #include <tinycode/tree.hpp>
 #include <tinycode/wasm/parser.hpp>
+#include <tinycode/wasm/runtime.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -30,15 +31,8 @@ namespace TinyCode {
 	};
 
 	namespace Wasm {
-		struct TeenyCodeMetadata {
-			std::string name;
-		};
-
 		void RemoveUnneccesary(std::vector<uint8_t>& in, std::vector<uint8_t>& out,
 			std::unordered_set<std::string> kept_names);
-		TeenyCodeMetadata GetMetadata(std::vector<uint8_t>& wasm);
-		void Execute(std::vector<uint8_t>& wasm);
-		void Execute2(std::vector<uint8_t>& wasm);
 	}
 
 	namespace Export {
