@@ -1,12 +1,11 @@
 #include <tinycode.hpp>
 #include <tinycode/wasm/runtime.hpp>
 
-#include <core/SkFont.h>
 #include <core/SkGraphics.h>
-#include <core/SkSurface.h>
 #include <gpu/GrBackendSurface.h>
 #include <gpu/GrDirectContext.h>
 #include <gpu/gl/GrGLInterface.h>
+#include <thread>
 
 #define CREATE_IMPORT(name, func, functype)                                                        \
 	func_##name = std::function(func);                                                             \
@@ -72,9 +71,18 @@ namespace TinyCode {
 			SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 			SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 
+			// Create window at given size
+			return PrepareWindowSize();
+		}
+
+		bool Runtime::PrepareWindowSize() {
+			if(gl_context)
+				SDL_GL_DeleteContext(gl_context);
+			if(window)
+				SDL_DestroyWindow(window);
+
 			SDL_WindowFlags window_flags
-				= (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-									| SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_MAXIMIZED);
+				= (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
 
 			if(!(window = SDL_CreateWindow(meta.name.c_str(), SDL_WINDOWPOS_CENTERED,
 					 SDL_WINDOWPOS_CENTERED, width, height, window_flags))) {
@@ -107,33 +115,33 @@ namespace TinyCode {
 			glGetIntegerv(GL_FRAMEBUFFER_BINDING, &buffer);
 
 			GrGLFramebufferInfo buffer_info;
-			buffer_info.fFBOID = (GrGLuint)buffer;
-#if defined(ANDROID)
-			buffer_info.fFormat = GL_RGB8_OES;
-#else
+			buffer_info.fFBOID  = (GrGLuint)buffer;
 			buffer_info.fFormat = GL_RGB8;
-#endif
 
 			GrBackendRenderTarget target(width, height, 0, 0, buffer_info);
 
 			SkSurfaceProps props;
-			sk_sp<SkSurface> surface(SkSurface::MakeFromBackendRenderTarget(gr_context.get(),
-				target, kBottomLeft_GrSurfaceOrigin, kRGB_888x_SkColorType, nullptr, &props));
-			canvas = surface->getCanvas();
+			surface = (SkSurface::MakeFromBackendRenderTarget(gr_context.get(), target,
+				kBottomLeft_GrSurfaceOrigin, kRGB_888x_SkColorType, nullptr, &props));
+			canvas  = surface->getCanvas();
 
 			return true;
 		}
 
 		bool Runtime::AttachImports() {
-			SkPaint paint;
-			paint.setAntiAlias(false);
-			SkFont font;
+			current_paint.setAntiAlias(false);
 
 			CREATE_IMPORT(
 				set_bounds,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
-					std::cout << "set_bounds called!" << std::endl;
-					// Cool
+					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32) {
+						width  = args[0].of.i32;
+						height = args[1].of.i32;
+						// Only create if window has been created before
+						if(window) {
+							PrepareWindowSize();
+						}
+					}
 				},
 				wasm_functype_new_2_0(wasm_valtype_new_i32(), wasm_valtype_new_i32()))
 
@@ -142,8 +150,9 @@ namespace TinyCode {
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32
 						&& args[2].kind == WASM_I32) {
-						paint.setColor(
-							SkColorSetRGB(args[0].of.i32, args[1].of.i32, args[2].of.i32));
+						current_color
+							= SkColorSetRGB(args[0].of.i32, args[1].of.i32, args[2].of.i32);
+						current_paint.setColor(current_color);
 					}
 				},
 				wasm_functype_new_3_0(
@@ -153,8 +162,8 @@ namespace TinyCode {
 				set_font,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					if(args[0].kind == WASM_I32) {
-						char* str = (char*)memory_base + args[2].of.i32;
-						font.setTypeface(SkTypeface::MakeFromName(str, SkFontStyle::Normal()));
+						current_font.setTypeface(SkTypeface::MakeFromName(
+							(char*)memory_base + args[0].of.i32, SkFontStyle::Normal()));
 					}
 				},
 				wasm_functype_new_1_0(wasm_valtype_new_i32()))
@@ -162,7 +171,7 @@ namespace TinyCode {
 			CREATE_IMPORT(
 				clear_screen,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
-					canvas->clear(paint.getColor());
+					canvas->clear(current_color);
 				},
 				wasm_functype_new_0_0())
 
@@ -173,7 +182,7 @@ namespace TinyCode {
 						&& args[2].kind == WASM_I32) {
 						char* str = (char*)memory_base + args[2].of.i32;
 						canvas->drawSimpleText(str, strlen(str), SkTextEncoding::kUTF8,
-							args[0].of.i32, args[1].of.i32, font, paint);
+							args[0].of.i32, args[1].of.i32, current_font, current_paint);
 					}
 				},
 				wasm_functype_new_3_0(
@@ -267,7 +276,7 @@ namespace TinyCode {
 						break;
 					}
 					case SDL_QUIT:
-						render = true;
+						render = false;
 						break;
 					default:
 						break;
@@ -283,6 +292,8 @@ namespace TinyCode {
 				canvas->flush();
 				SDL_GL_SwapWindow(window);
 				frame++;
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			}
 
 			return true;

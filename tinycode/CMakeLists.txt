@@ -12,7 +12,7 @@ if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
 	add_link_options(-g -O0)
 endif()
 
-if(DEFINED ANDROID_NDK)
+if(ANDROID)
 	# Define Android architecture variables
 	# Used for building in skia and determining build locations
 	if(ANDROID_ABI STREQUAL "armeabi-v7a")
@@ -39,7 +39,7 @@ set(SKIA_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/third_party/skia)
 execute_process(
 	COMMAND python tools/git-sync-deps
 	WORKING_DIRECTORY ${SKIA_DIR})
-if(DEFINED ANDROID_NDK)
+if(ANDROID)
 	execute_process(
 		COMMAND bin/gn gen ${SKIA_BUILD_DIR} "--args=is_debug=false ndk=\"${ANDROID_NDK}\" target_cpu=\"${ANDROID_ARCH}\" is_component_build=true skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_icu=false"
 		WORKING_DIRECTORY ${SKIA_DIR})
@@ -81,6 +81,12 @@ set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasmtime)
 
 # SDL2 for the desktop runtime, mobile TODO
+if(ANDROID)
+	set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
+else()
+	set(SDL_STATIC ON CACHE INTERNAL "" FORCE)
+endif()
+set(SDL_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL/include)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL ${CMAKE_CURRENT_BINARY_DIR}/third_party/SDL)
 
 set(tinycode_SOURCES
@@ -104,7 +110,7 @@ include_directories(ZXing ${SKIA_DIR} ${SKIA_DIR}/include ${BINARYEN_DIR}/src m3
 
 if(WIN32)
 	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen SDL2main SDL2-static m3 gdi32 opengl32)
-else()
-	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen m3)
+elseif(ANDROID)
+	target_link_libraries(tinycode PUBLIC ZXing skia wasmtime binaryen SDL2 m3)
 endif()
-target_include_directories(tinycode PUBLIC include SDL2-static ${SKIA_DIR} ${SKIA_DIR}/include)
+target_include_directories(tinycode PUBLIC include ${SDL_INCLUDES} ${SKIA_DIR} ${SKIA_DIR}/include)

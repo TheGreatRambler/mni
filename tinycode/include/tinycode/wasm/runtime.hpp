@@ -7,6 +7,8 @@
 #include <array>
 #include <codec/SkCodec.h>
 #include <core/SkCanvas.h>
+#include <core/SkFont.h>
+#include <core/SkSurface.h>
 #include <functional>
 #include <unordered_set>
 #include <vector>
@@ -50,6 +52,7 @@ namespace TinyCode {
 			}
 
 		private:
+			bool PrepareWindowSize();
 			bool AttachImports();
 
 #define CREATE_IMPORT(name)                                                                        \
@@ -62,14 +65,21 @@ namespace TinyCode {
 			CREATE_IMPORT(draw_string)
 
 			std::vector<uint8_t>& wasm_bytes;
-			int width { 100 };
-			int height { 100 };
+			int width { 400 };
+			int height { 400 };
 			bool render { true };
 			int64_t frame { 0 };
 			Metadata meta;
+
 			SDL_Window* window { nullptr };
 			SDL_GLContext gl_context { nullptr };
+
+			sk_sp<SkSurface> surface;
 			SkCanvas* canvas { nullptr };
+			SkPaint current_paint;
+			SkColor current_color;
+			SkFont current_font;
+
 			wasm_engine_t* engine { nullptr };
 			wasmtime_store_t* store { nullptr };
 			wasmtime_context_t* context { nullptr };

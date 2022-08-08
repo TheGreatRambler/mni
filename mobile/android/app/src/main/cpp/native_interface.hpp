@@ -16,5 +16,5 @@ public:
 
 private:
 	std::vector<uint8_t> qr_bytes;
-	TinyCode::Wasm::TeenyCodeMetadata meta;
+	TinyCode::Wasm::Metadata meta;
 };

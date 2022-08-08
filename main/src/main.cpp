@@ -29,6 +29,14 @@ int main(int argc, char** argv) {
 		"-q,--qr", qr_path_meta, "QR code containing compressed webassembly (.png)");
 	meta_wasm.require_option(1);
 
+	auto& run_sub  = *app.add_subcommand("run", "Run optimized Webassembly window");
+	auto& run_wasm = *run_sub.add_option_group("wasm");
+	std::string wasm_input_run;
+	run_wasm.add_option("-w,--wasm", wasm_input_run, "Optimized webassembly to run (.owasm)");
+	std::string qr_path_run;
+	run_wasm.add_option("-q,--qr", qr_path_run, "QR code containing compressed webassembly (.png)");
+	run_wasm.require_option(1);
+
 	CLI11_PARSE(app, argc, argv);
 
 	std::chrono::time_point<std::chrono::steady_clock> start;
@@ -121,6 +129,38 @@ int main(int argc, char** argv) {
 		time_taken    = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
 		fmt::print("Output: ({}ms)\n", time_taken);
 		std::cout << "    name: " << metadata.name << std::endl;
+	} else if(run_sub) {
+		std::vector<uint8_t> optimized_wasm_bytes;
+		if(!qr_path_run.empty()) {
+			start = std::chrono::high_resolution_clock::now();
+			TinyCode::Import::ScanQRCode(optimized_wasm_bytes, qr_path_run);
+			stop = std::chrono::high_resolution_clock::now();
+			time_taken
+				= std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+			fmt::print(
+				"Input optimized wasm: {} bytes ({}ms)\n", optimized_wasm_bytes.size(), time_taken);
+		} else if(!wasm_input_run.empty()) {
+			start = std::chrono::high_resolution_clock::now();
+			std::ifstream wasm_file(wasm_input_run, std::ios::binary);
+			optimized_wasm_bytes = std::vector<uint8_t>(
+				(std::istreambuf_iterator<char>(wasm_file)), std::istreambuf_iterator<char>());
+			stop = std::chrono::high_resolution_clock::now();
+			time_taken
+				= std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+			fmt::print(
+				"Input optimized wasm: {} bytes ({}ms)\n", optimized_wasm_bytes.size(), time_taken);
+		}
+
+		start = std::chrono::high_resolution_clock::now();
+		std::vector<uint8_t> wasm_bytes;
+		auto size  = TinyCode::Wasm::OptimizedToNormal(wasm_bytes, 0, optimized_wasm_bytes);
+		stop       = std::chrono::high_resolution_clock::now();
+		time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+		fmt::print("Input wasm: {} bytes ({}ms)\n", wasm_bytes.size(), time_taken);
+
+		TinyCode::Wasm::Runtime runtime(wasm_bytes);
+		runtime.PrepareWindow();
+		runtime.OpenWindow();
 	}
 
 	return 0;
