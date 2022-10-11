@@ -1,44 +1,78 @@
 package com.tgrcode.teenycodes
 
 import android.Manifest
+import android.graphics.Color
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.SurfaceView
+import android.view.ViewGroup
 import android.widget.Toast
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.Lifecycle
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
 import com.tgrcode.teenycodes.databinding.ActivityMainBinding
+import org.libsdl.app.SDLActivity
 import java.util.concurrent.Executors
+
 
 private const val CAMERA_PERMISSION_REQUEST_CODE = 1
 
 // Based on https://github.com/bea-droid/barcodescanner
 @ExperimentalGetImage
-class MainActivity : AppCompatActivity() {
+class MainActivity : SDLActivity(), LifecycleOwner {
 	private lateinit var binding: ActivityMainBinding
-	private lateinit var jniInterface: JniInterface
+	// For the camera
+	private lateinit var lifecycleRegistry: LifecycleRegistry
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		jniInterface = JniInterface()
-		binding = ActivityMainBinding.inflate(layoutInflater)
 		setContentView(binding.root)
 
-		if (hasCameraPermission()) bindCameraUseCases()
-		else requestPermission()
+		lifecycleRegistry = LifecycleRegistry(this)
+		lifecycleRegistry.currentState = Lifecycle.State.CREATED
+
+		if (hasCameraPermission()) {
+			bindCameraUseCases()
+		} else {
+			requestPermission()
+		}
 	}
+
+	public override fun onStart() {
+		super.onStart()
+		lifecycleRegistry.currentState = Lifecycle.State.STARTED
+	}
+
+	override fun getLifecycle(): Lifecycle {
+		return lifecycleRegistry
+	}
+
+	override fun addApplicationSurface(surface: SurfaceView): ViewGroup {
+		binding = ActivityMainBinding.inflate(layoutInflater)
+		//binding.cameraView.overlay.add(binding.QRLayout)
+		binding.QRLayout.addView(surface)
+		return binding.QRLayout
+	}
+
+	override fun getLibraries(): Array<String> {
+		return arrayOf(
+			"SDL2",
+			"tinycode_android_native"
+		)
+	}
+
+	external fun registerCode(qr: ByteArray): Boolean
+	external fun getCodeName(): String
 
 	// checking to see whether user has already granted permission
 	private fun hasCameraPermission() =
@@ -150,8 +184,8 @@ class MainActivity : AppCompatActivity() {
 
 					barcode?.rawBytes?.let { qr ->
 						// Raw bytes of qr code
-						jniInterface.registerCode(qr)
-						binding.bottomText.text = jniInterface.getCodeName()
+						registerCode(qr)
+						binding.bottomText.text = getCodeName()
 					}
 
 					//barcode?.rawValue?.let { value ->

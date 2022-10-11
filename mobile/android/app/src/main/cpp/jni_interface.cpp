@@ -2,6 +2,7 @@
 
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
+#include <android/log.h>
 #include <jni.h>
 
 #include "native_interface.hpp"
@@ -10,8 +11,6 @@ extern "C" {
 namespace {
 	// maintain a reference to the JVM
 	static JavaVM* g_vm = nullptr;
-	// Native interface class
-	static NativeInterface* interface = nullptr;
 }
 
 jint JNI_OnLoad(JavaVM* vm, void*) {

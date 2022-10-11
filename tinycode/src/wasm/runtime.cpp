@@ -7,6 +7,10 @@
 #include <gpu/gl/GrGLInterface.h>
 #include <thread>
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 #define CREATE_IMPORT(name, func, functype)                                                        \
 	func_##name = std::function(func);                                                             \
 	wasmtime_linker_define_func(                                                                   \
@@ -19,17 +23,24 @@
 		&func_##name, NULL);
 
 #define GET_EXPORT(name)                                                                           \
-	wasmtime_extern_t name;                                                                        \
-	if(!wasmtime_instance_export_get(context, &instance, #name, strlen(#name), &name)) {           \
-		std::cerr << "Could not retrieve \"" #name "\" from exports" << std::endl;                 \
+	if(!wasmtime_instance_export_get(context, &instance, "teenycode_" #name,                       \
+		   strlen("teenycode_" #name), &teenycode_##name)) {                                       \
+		std::cerr << "Could not retrieve \""                                                       \
+					 "teenycode_" #name "\" from exports"                                          \
+				  << std::endl;                                                                    \
 		return false;                                                                              \
 	}
 
 namespace TinyCode {
 	namespace Wasm {
-		bool Runtime::PrepareWindow() {
-			if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
+		bool Runtime::PrepareWindowStartup() {
+			// TODO this crashes android with "Failed, there is no JavaVM"
+			if(SDL_Init(SDL_INIT_VIDEO) != 0) {
 				std::cerr << "Could not initialize SDL" << std::endl;
+#ifdef ANDROID
+				__android_log_print(ANDROID_LOG_ERROR, "TeenyCodes", "Could not initialize SDL: %s",
+					SDL_GetError());
+#endif
 				return false;
 			}
 
@@ -72,31 +83,40 @@ namespace TinyCode {
 			SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 
 			// Create window at given size
-			return PrepareWindowSize();
+			return PrepareWindow();
 		}
 
-		bool Runtime::PrepareWindowSize() {
+		bool Runtime::PrepareWindow() {
 			if(gl_context)
 				SDL_GL_DeleteContext(gl_context);
 			if(window)
 				SDL_DestroyWindow(window);
 
-			SDL_WindowFlags window_flags
-				= (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+			SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL);
 
 			if(!(window = SDL_CreateWindow(meta.name.c_str(), SDL_WINDOWPOS_CENTERED,
 					 SDL_WINDOWPOS_CENTERED, width, height, window_flags))) {
 				std::cerr << "Could not create SDL window" << std::endl;
+#ifdef ANDROID
+				__android_log_print(ANDROID_LOG_ERROR, "TeenyCodes", "Could not create SDL window");
+#endif
 				return false;
 			}
 
 			if(!(gl_context = SDL_GL_CreateContext(window))) {
 				std::cerr << "Could not create GL context" << std::endl;
+#ifdef ANDROID
+				__android_log_print(ANDROID_LOG_ERROR, "TeenyCodes", "Could not create GL context");
+#endif
 				return false;
 			}
 
 			if(SDL_GL_MakeCurrent(window, gl_context)) {
 				std::cerr << "Could not make SDL window current" << std::endl;
+#ifdef ANDROID
+				__android_log_print(
+					ANDROID_LOG_ERROR, "TeenyCodes", "Could not make SDL window current");
+#endif
 				return false;
 			}
 
@@ -125,6 +145,12 @@ namespace TinyCode {
 				kBottomLeft_GrSurfaceOrigin, kRGB_888x_SkColorType, nullptr, &props));
 			canvas  = surface->getCanvas();
 
+#ifdef ANDROID
+			if(!canvas) {
+				__android_log_print(ANDROID_LOG_ERROR, "TeenyCodes", "Could not create canvas");
+			}
+#endif
+
 			return true;
 		}
 
@@ -137,13 +163,13 @@ namespace TinyCode {
 					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32) {
 						width  = args[0].of.i32;
 						height = args[1].of.i32;
-						// Only create if window has been created before
+						// Only recreate if window has been created before
 						if(window) {
-							PrepareWindowSize();
+							PrepareWindow();
 						}
 					}
 				},
-				wasm_functype_new_2_0(wasm_valtype_new_i32(), wasm_valtype_new_i32()))
+				ConstructFunction({ wasm_valtype_new_i32(), wasm_valtype_new_i32() }))
 
 			CREATE_IMPORT(
 				set_color,
@@ -155,8 +181,8 @@ namespace TinyCode {
 						current_paint.setColor(current_color);
 					}
 				},
-				wasm_functype_new_3_0(
-					wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32()))
+				ConstructFunction(
+					{ wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32() }))
 
 			CREATE_IMPORT(
 				set_font,
@@ -166,14 +192,14 @@ namespace TinyCode {
 							(char*)memory_base + args[0].of.i32, SkFontStyle::Normal()));
 					}
 				},
-				wasm_functype_new_1_0(wasm_valtype_new_i32()))
+				ConstructFunction({ wasm_valtype_new_i32() }))
 
 			CREATE_IMPORT(
 				clear_screen,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					canvas->clear(current_color);
 				},
-				wasm_functype_new_0_0())
+				ConstructFunction())
 
 			CREATE_IMPORT(
 				draw_string,
@@ -185,10 +211,18 @@ namespace TinyCode {
 							args[0].of.i32, args[1].of.i32, current_font, current_paint);
 					}
 				},
-				wasm_functype_new_3_0(
-					wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32()))
+				ConstructFunction(
+					{ wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32() }))
 
 			return true;
+		}
+
+		wasm_functype_t* Runtime::ConstructFunction(
+			std::vector<wasm_valtype_t*> params, std::vector<wasm_valtype_t*> results) {
+			wasm_valtype_vec_t params_vec, results_vec;
+			wasm_valtype_vec_new(&params_vec, params.size(), params.data());
+			wasm_valtype_vec_new(&results_vec, results.size(), results.data());
+			return wasm_functype_new(&params_vec, &results_vec);
 		}
 
 		bool Runtime::PrepareWasm() {
@@ -229,7 +263,9 @@ namespace TinyCode {
 				export_index++;
 			}
 
-			GET_EXPORT(teenycode_prepare)
+			GET_EXPORT(prepare)
+			GET_EXPORT(name)
+			GET_EXPORT(render)
 
 			wasmtime_val_t prepare_ret;
 			// Don't check return yet
@@ -242,15 +278,8 @@ namespace TinyCode {
 		}
 
 		bool Runtime::GetMetadata() {
-			wasmtime_extern_t read_name;
-			if(!wasmtime_instance_export_get(
-				   context, &instance, "teenycode_name", strlen("teenycode_name"), &read_name)) {
-				std::cerr << "Could not retrieve \"teenycode_name\" from exports" << std::endl;
-				return false;
-			}
-
 			wasmtime_val_t name_addr;
-			wasmtime_func_call(context, &read_name.of.func, NULL, 0, &name_addr, 1, &trap);
+			wasmtime_func_call(context, &teenycode_name.of.func, NULL, 0, &name_addr, 1, &trap);
 			int name_addr_value = name_addr.of.i32;
 
 			meta = {
@@ -260,41 +289,34 @@ namespace TinyCode {
 			return true;
 		}
 
-		bool Runtime::OpenWindow() {
-			GET_EXPORT(teenycode_render)
-
-			while(render) {
-				// TODO events
-				SDL_Event event;
-				while(SDL_PollEvent(&event)) {
-					switch(event.type) {
-					case SDL_KEYDOWN: {
-						SDL_Keycode key = event.key.keysym.sym;
-						if(key == SDLK_ESCAPE) {
-							render = false;
-						}
-						break;
+		bool Runtime::TickWindow() {
+			// TODO events
+			SDL_Event event;
+			while(SDL_PollEvent(&event)) {
+				switch(event.type) {
+				case SDL_KEYDOWN: {
+					SDL_Keycode key = event.key.keysym.sym;
+					if(key == SDLK_ESCAPE) {
+						return false;
 					}
-					case SDL_QUIT:
-						render = false;
-						break;
-					default:
-						break;
-					}
+					break;
 				}
-
-				wasmtime_val_t render_args[] = { WASM_I64_VAL(frame) };
-				wasmtime_val_t render_ret;
-				// Don't check return yet
-				wasmtime_func_call(
-					context, &teenycode_render.of.func, render_args, 1, &render_ret, 1, &trap);
-
-				canvas->flush();
-				SDL_GL_SwapWindow(window);
-				frame++;
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				case SDL_QUIT:
+					return false;
+				default:
+					break;
+				}
 			}
+
+			wasmtime_val_t render_args[] = { WASM_I64_VAL(frame) };
+			wasmtime_val_t render_ret;
+			// Don't check return yet
+			wasmtime_func_call(
+				context, &teenycode_render.of.func, render_args, 1, &render_ret, 1, &trap);
+
+			canvas->flush();
+			SDL_GL_SwapWindow(window);
+			frame++;
 
 			return true;
 		}

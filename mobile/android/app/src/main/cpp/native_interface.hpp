@@ -4,6 +4,7 @@
 #include <tinycode.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,10 @@ public:
 	std::string& GetCodeName();
 
 private:
-	std::vector<uint8_t> qr_bytes;
+	std::vector<uint8_t> optimized_wasm_bytes;
+	std::vector<uint8_t> wasm_bytes;
 	TinyCode::Wasm::Metadata meta;
+	std::shared_ptr<TinyCode::Wasm::Runtime> runtime;
 };
+
+static NativeInterface* interface;

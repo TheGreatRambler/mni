@@ -5,6 +5,7 @@
 #include <fmt/core.h>
 #include <fstream>
 #include <ostream>
+#include <thread>
 #include <tinycode.hpp>
 
 int main(int argc, char** argv) {
@@ -159,8 +160,10 @@ int main(int argc, char** argv) {
 		fmt::print("Input wasm: {} bytes ({}ms)\n", wasm_bytes.size(), time_taken);
 
 		TinyCode::Wasm::Runtime runtime(wasm_bytes);
-		runtime.PrepareWindow();
-		runtime.OpenWindow();
+		runtime.PrepareWindowStartup();
+
+		while(runtime.TickWindow())
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
 	return 0;

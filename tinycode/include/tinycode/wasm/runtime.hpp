@@ -4,7 +4,6 @@
 #define SK_RELEASE
 
 #include <SDL.h>
-#include <array>
 #include <codec/SkCodec.h>
 #include <core/SkCanvas.h>
 #include <core/SkFont.h>
@@ -21,14 +20,11 @@
 #include <SDL_opengl.h>
 #endif
 
+#include "imports.h"
+
 namespace TinyCode {
 	namespace Wasm {
-		static const std::unordered_set<std::string> DEFINED_FUNCTIONS {
-			// Exports
-			"teenycode_name",
-			"teenycode_prepare",
-			"teenycode_render",
-		};
+		static const std::unordered_set<std::string> DEFINED_FUNCTIONS TEENYCODE_INCLUDED_FUNCTIONS;
 
 		struct Metadata {
 			std::string name;
@@ -41,10 +37,10 @@ namespace TinyCode {
 				PrepareWasm();
 			}
 
-			bool PrepareWindow();
+			bool PrepareWindowStartup();
 			bool PrepareWasm();
 			bool GetMetadata();
-			bool OpenWindow();
+			bool TickWindow();
 			bool Close();
 
 			Metadata Meta() {
@@ -52,8 +48,12 @@ namespace TinyCode {
 			}
 
 		private:
-			bool PrepareWindowSize();
+			bool PrepareWindow();
 			bool AttachImports();
+
+			// Helper function to construct function types
+			wasm_functype_t* ConstructFunction(std::vector<wasm_valtype_t*> params = {},
+				std::vector<wasm_valtype_t*> results                               = {});
 
 #define CREATE_IMPORT(name)                                                                        \
 	std::function<void(const wasmtime_val_t* args, wasmtime_val_t* results)> func_##name;
@@ -64,7 +64,14 @@ namespace TinyCode {
 			CREATE_IMPORT(clear_screen)
 			CREATE_IMPORT(draw_string)
 
+#define CREATE_EXPORT(name) wasmtime_extern_t teenycode_##name;
+
+			CREATE_EXPORT(prepare)
+			CREATE_EXPORT(name)
+			CREATE_EXPORT(render)
+
 			std::vector<uint8_t>& wasm_bytes;
+			// Default for wasm4
 			int width { 400 };
 			int height { 400 };
 			bool render { true };

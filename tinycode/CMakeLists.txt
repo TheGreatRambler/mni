@@ -86,7 +86,10 @@ if(ANDROID)
 else()
 	set(SDL_STATIC ON CACHE INTERNAL "" FORCE)
 endif()
-set(SDL_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL/include)
+set(SDL_INCLUDES
+	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL/include
+	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL/src
+)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/SDL ${CMAKE_CURRENT_BINARY_DIR}/third_party/SDL)
 
 set(tinycode_SOURCES
