@@ -1,1 +1,0 @@
-emcc -Oz -I../tinycode/include -sFILESYSTEM=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 --no-entry test1.cpp -o test1.wasm

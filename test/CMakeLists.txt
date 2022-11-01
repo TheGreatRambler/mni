@@ -10,6 +10,7 @@ endif()
 # GoogleTest for testing
 set(BUILD_GMOCK OFF)
 set(INSTALL_GTEST OFF)
+set(gtest_force_shared_crt ON)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/third_party/googletest)
 enable_testing()
 
@@ -24,12 +25,12 @@ target_include_directories(test PUBLIC include src wasm-tools)
 target_compile_options(test PRIVATE -Wall -Wextra -Wno-deprecated-declarations -Wno-unused-variable)
 
 set_target_properties(test PROPERTIES
-		OUTPUT_NAME "tinycode_test"
+		OUTPUT_NAME "mni_test"
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
 		CXX_VISIBILITY_PRESET hidden
 		POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(test PUBLIC tinycode gtest_main wasm-tools)
+target_link_libraries(test PUBLIC mni gtest_main wasm-tools)
 
 include(GoogleTest)
 gtest_discover_tests(test)

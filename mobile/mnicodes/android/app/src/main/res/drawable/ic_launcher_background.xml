@@ -1,0 +1,25 @@
+<!-- Not used right now, using @color/icon_background instead -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="384dp"
+    android:height="384dp"
+    android:viewportWidth="384"
+    android:viewportHeight="384">
+  <path
+      android:pathData="M192,192m-192,0a192,192 0,1 1,384 0a192,192 0,1 1,-384 0"
+      android:strokeWidth="0"
+      android:strokeColor="#314dff"
+      android:strokeLineCap="round">
+    <aapt:attr name="android:fillColor">
+      <gradient
+          android:startX="166.09"
+          android:startY="355.22"
+          android:endX="166.09"
+          android:endY="1.76"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF5EAAA8"/>
+        <item android:offset="1" android:color="#FFA3D2CA"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+</vector>

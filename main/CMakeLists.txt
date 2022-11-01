@@ -18,9 +18,9 @@ target_include_directories(main PUBLIC include src)
 target_compile_options(main PRIVATE -Wall -Wextra -Wno-deprecated-declarations)
 
 set_target_properties(main PROPERTIES
-		OUTPUT_NAME "tinycode"
+		OUTPUT_NAME "mni"
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
 		CXX_VISIBILITY_PRESET hidden
 		POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(main PUBLIC tinycode CLI11::CLI11 fmt)
+target_link_libraries(main PUBLIC mni CLI11::CLI11 fmt)

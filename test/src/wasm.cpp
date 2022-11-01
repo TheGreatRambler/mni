@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include <tinycode.hpp>
-#include <tinycode/wasm/parser.hpp>
+#include <mni.hpp>
+#include <mni/wasm/parser.hpp>
 #include <wasm-tools.h>
 
 #include <fstream>
 #include <random>
 #include <vector>
 
-// Test optimizing to bitcode (teenycode)
+// Test optimizing to bitcode (mni.codes)
 TEST(Wasm, OptimizeTiny) {
 	wasm_tools_byte_vec_t module;
 	std::mt19937 rng(1);
@@ -27,9 +27,9 @@ TEST(Wasm, OptimizeTiny) {
 			std::vector<uint8_t> data(module.data, module.data + module.size);
 
 			std::vector<uint8_t> optimized_bytes;
-			TinyCode::Wasm::NormalToOptimized(data, 0, optimized_bytes);
+			Mni::Wasm::NormalToOptimized(data, 0, optimized_bytes);
 			std::vector<uint8_t> new_data(module.size);
-			TinyCode::Wasm::OptimizedToNormal(new_data, 0, optimized_bytes);
+			Mni::Wasm::OptimizedToNormal(new_data, 0, optimized_bytes);
 
 			EXPECT_EQ(data.size(), new_data.size());
 			EXPECT_EQ(data, new_data);
@@ -38,3 +38,6 @@ TEST(Wasm, OptimizeTiny) {
 		}
 	}
 }
+
+// Test running an example binary, requires user input
+TEST(Wasm, Runtime) { }
