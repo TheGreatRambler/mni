@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:mnicodes/views/home.dart';
 import 'package:mnicodes/data/state.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 
-void main() {
+void main() async {
+  // Enforce portrait only
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(
+    [DeviceOrientation.portraitUp],
+  );
+
   runApp(
     MultiProvider(
       providers: [

@@ -19,7 +19,6 @@
 #include <wasm-io.h>
 #include <wasm-stack.h>
 #include <wasm-type.h>
-#include <wasm.h>
 #include <wasm3.h>
 #include <wasmtime.h>
 
@@ -164,7 +163,7 @@ namespace Mni {
 			names.clear();
 			for(auto& curr : wasm.exports) {
 				if(curr->kind == wasm::ExternalKind::Function) {
-					names.push_back(std::string(curr->name.c_str()));
+					names.push_back(std::string(curr->name.str));
 				}
 			}
 		}

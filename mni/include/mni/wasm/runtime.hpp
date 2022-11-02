@@ -68,6 +68,10 @@ namespace Mni {
 				return meta;
 			}
 
+			void SetRotation(int angle) {
+				rotation = angle;
+			}
+
 		private:
 			bool PrepareWindow();
 			bool AttachImports();
@@ -94,6 +98,7 @@ namespace Mni {
 			DECLARE_IMPORT(draw_rgb)
 			DECLARE_IMPORT(draw_rgba)
 			DECLARE_IMPORT(load_png)
+			DECLARE_IMPORT(get_rotation)
 
 #define DECLARE_EXPORT(name)                                                                       \
 	wasmtime_extern_t mni_##name;                                                                  \
@@ -104,14 +109,16 @@ namespace Mni {
 			DECLARE_EXPORT(render)
 
 			std::vector<uint8_t>& wasm_bytes;
-			// Default for wasm4
 			int width { 512 };
 			int height { 512 };
 			bool render { true };
 			int64_t frame { 0 };
 			Metadata meta;
 
-			bool have_window = false;
+			// Input variables
+			int rotation { 0 };
+
+			bool have_window { false };
 #ifndef ANDROID
 			SDL_Window* window { nullptr };
 			SDL_GLContext gl_context { nullptr };

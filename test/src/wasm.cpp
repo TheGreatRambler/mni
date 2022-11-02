@@ -13,7 +13,7 @@ TEST(Wasm, OptimizeTiny) {
 	std::mt19937 rng(1);
 	std::uniform_int_distribution<int> dist(1, 255);
 
-	constexpr int NUM_MODULES  = 1000;
+	constexpr int NUM_MODULES  = 2000;
 	constexpr int SIZE_MODULES = 10000;
 
 	for(int i = 0; i < NUM_MODULES; i++) {

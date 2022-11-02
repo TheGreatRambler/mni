@@ -10,24 +10,29 @@ import javax.microedition.khronos.egl.EGLContext
 import javax.microedition.khronos.egl.EGLDisplay
 import javax.microedition.khronos.egl.EGLSurface
 
-import android.opengl.GLES20
+import java.util.concurrent.atomic.AtomicInteger
 
 class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
     companion object {
         private const val LOG_TAG = "MniRenderer"
+
         init {
             System.loadLibrary("mni_android_native")
         }
+
         external fun loadFromBuffer(buffer: ByteArray): Boolean
         external fun renderNextFrame(): Boolean
+        external fun setRotation(angle: Int): Boolean
     }
+
+    public var rotation: AtomicInteger = AtomicInteger(0)
 
     protected val texture: SurfaceTexture
     private lateinit var egl: EGL10
     private lateinit var eglDisplay: EGLDisplay
     private lateinit var eglContext: EGLContext
     private lateinit var eglSurface: EGLSurface
-	private lateinit var buffer: ByteArray
+    private lateinit var buffer: ByteArray
     private var running: Boolean
 
     override fun run() {
@@ -39,6 +44,9 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
         Log.d(LOG_TAG, "OpenGL init OK.")
         while (running) {
             val loopStart: Long = System.currentTimeMillis()
+
+            // Send in input
+            setRotation(rotation.get())
 
             if (renderNextFrame()) {
                 if (!egl.eglSwapBuffers(eglDisplay, eglSurface)) {
@@ -145,7 +153,7 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
 
     init {
         this.texture = texture
-		this.buffer = buffer
+        this.buffer = buffer
         running = true
         val thread = Thread(this)
         thread.start()

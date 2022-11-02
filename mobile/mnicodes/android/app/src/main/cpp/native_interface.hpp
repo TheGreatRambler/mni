@@ -17,6 +17,8 @@ public:
 	bool RenderNextFrame();
 	std::string& GetCodeName();
 
+	void SetRotation(int angle);
+
 private:
 	std::vector<uint8_t> optimized_wasm_bytes;
 	std::vector<uint8_t> wasm_bytes;

@@ -36,6 +36,11 @@ JNI_METHOD(jboolean, renderNextFrame)(JNIEnv* env, jclass) {
 	return (jboolean)success;
 }
 
+JNI_METHOD(jboolean, setRotation)(JNIEnv* env, jclass, jint angle) {
+	interface->SetRotation(angle);
+	return (jboolean) true;
+}
+
 JNIEnv* GetJniEnv() {
 	JNIEnv* env;
 	jint result = g_vm->AttachCurrentThread(&env, nullptr);

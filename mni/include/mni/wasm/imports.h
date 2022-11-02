@@ -5,6 +5,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// Drawing
 // Set size of window
 void mni_set_bounds(int width, int height);
 // Set fill style
@@ -15,6 +17,7 @@ void mni_set_stroke(int r, int g, int b, int a);
 void mni_set_line_width(int w);
 // Draw rectangle with specified fill and stroke
 void mni_draw_rect(int x1, int y1, int x2, int y2);
+// TODO arc/circle
 // Draw rectangle over entire screen, ignore stroke
 void mni_clear_screen();
 // TODO paths
@@ -35,6 +38,9 @@ void mni_draw_rgb(uint8_t* image, int w, int h, int x, int y);
 void mni_draw_rgba(uint8_t* image, int w, int h, int x, int y);
 // Load PNG from path as RGBA, returning buffer containing image and the width and height
 uint8_t* mni_load_png(char* image, int& w, int& h);
+
+// Input handling
+int mni_get_rotation();
 
 #ifdef __cplusplus
 }
@@ -61,6 +67,7 @@ uint8_t* mni_load_png(char* image, int& w, int& h);
 	{14, "mni_draw_rgb"},             \
 	{15, "mni_draw_rgba"},            \
 	{16, "mni_load_png"},             \
+	{17, "mni_get_rotation"}          \
 }
 // clang-format on
 

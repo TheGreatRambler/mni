@@ -1552,17 +1552,17 @@ namespace Mni {
 							case wasm::BinaryConsts::RefTestStatic:
 							case wasm::BinaryConsts::RefCastStatic:
 							case wasm::BinaryConsts::RefCastNopStatic:
-							case wasm::BinaryConsts::RttCanon:
-							case wasm::BinaryConsts::RttSub:
-							case wasm::BinaryConsts::RttFreshSub:
+							// case wasm::BinaryConsts::RttCanon:
+							// case wasm::BinaryConsts::RttSub:
+							// case wasm::BinaryConsts::RttFreshSub:
 							case wasm::BinaryConsts::StructNew:
 							case wasm::BinaryConsts::StructNewDefault:
-							case wasm::BinaryConsts::StructNewWithRtt:
-							case wasm::BinaryConsts::StructNewDefaultWithRtt:
+							// case wasm::BinaryConsts::StructNewWithRtt:
+							// case wasm::BinaryConsts::StructNewDefaultWithRtt:
 							case wasm::BinaryConsts::ArrayNew:
 							case wasm::BinaryConsts::ArrayNewDefault:
-							case wasm::BinaryConsts::ArrayNewWithRtt:
-							case wasm::BinaryConsts::ArrayNewDefaultWithRtt:
+							// case wasm::BinaryConsts::ArrayNewWithRtt:
+							// case wasm::BinaryConsts::ArrayNewDefaultWithRtt:
 							case wasm::BinaryConsts::ArrayGet:
 							case wasm::BinaryConsts::ArrayGetU:
 							case wasm::BinaryConsts::ArrayGetS:
@@ -1572,8 +1572,8 @@ namespace Mni {
 							}
 							case wasm::BinaryConsts::BrOnNull:
 							case wasm::BinaryConsts::BrOnNonNull:
-							case wasm::BinaryConsts::BrOnCast:
-							case wasm::BinaryConsts::BrOnCastFail:
+							// case wasm::BinaryConsts::BrOnCast:
+							// case wasm::BinaryConsts::BrOnCastFail:
 							case wasm::BinaryConsts::BrOnFunc:
 							case wasm::BinaryConsts::BrOnNonFunc:
 							case wasm::BinaryConsts::BrOnData:
@@ -1594,8 +1594,8 @@ namespace Mni {
 								HandleIndexedType();
 								HandleIndex(STRUCT);
 							} break;
-							case wasm::BinaryConsts::ArrayInitStatic:
-							case wasm::BinaryConsts::ArrayInit: {
+							case wasm::BinaryConsts::ArrayInitStatic: {
+								// case wasm::BinaryConsts::ArrayInit: {
 								HandleIndexedType();
 								HandleSize();
 							} break;

@@ -46,13 +46,15 @@ if(ANDROID)
 	add_library(skia SHARED IMPORTED)
 	set_property(TARGET skia PROPERTY
 		IMPORTED_LOCATION ${SKIA_BUILD_DIR}/libskia.so)
-else()
+elseif(WIN32)
 	execute_process(
 		COMMAND bin/gn gen ${SKIA_BUILD_DIR} "--args=is_official_build=true clang_win=\"C:/Program Files/LLVM\" extra_cflags=[\"/MDd\"] skia_use_system_libjpeg_turbo=false skia_use_system_libwebp=false skia_use_system_expat=false skia_use_system_zlib=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false"
 		WORKING_DIRECTORY ${SKIA_DIR})
 	add_library(skia STATIC IMPORTED)
 	set_property(TARGET skia PROPERTY
 		IMPORTED_LOCATION ${SKIA_BUILD_DIR}/skia.lib)
+else()
+	# MacOS
 endif()
 execute_process(COMMAND ninja WORKING_DIRECTORY ${SKIA_BUILD_DIR})
 
@@ -72,12 +74,6 @@ set(wasm3_includes
 )
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasm3/source ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasm3)
 
-# Force release for Wasmtime on Android
-if(ANDROID)
-	set(OLD_CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
-	set(CMAKE_BUILD_TYPE Release CACHE INTERNAL "" FORCE)
-endif()
-
 # wasmtime for an alternative better Webassembly runtime
 set(WASMTIME_INCLUDES 
 	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api/include
@@ -86,12 +82,7 @@ set(WASMTIME_INCLUDES
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/wasmtime/crates/c-api ${CMAKE_CURRENT_BINARY_DIR}/third_party/wasmtime)
 
-# Revert to old build type
-if(ANDROID)
-	set(CMAKE_BUILD_TYPE "${OLD_CMAKE_BUILD_TYPE}" CACHE INTERNAL "" FORCE)
-endif()
-
-# SDL2 for the desktop runtime, mobile TODO
+# SDL2 for the desktop runtime
 if(NOT ANDROID)
 	set(SDL_STATIC ON CACHE INTERNAL "" FORCE)
 	set(SDL_INCLUDES

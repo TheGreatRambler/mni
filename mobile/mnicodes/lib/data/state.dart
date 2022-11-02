@@ -16,8 +16,6 @@ class CurrentState extends ChangeNotifier {
   Future<void> start() async {
     var temp = await rootBundle.load("assets/main.owasm");
     texture = await MediaStore().createTexture(temp.buffer.asUint8List());
-    //texture = runtimeBridge.loadFromBuffer(temp.buffer.asUint8List(), await MediaStore().getFlutterTexture());
-    print("Have texture $texture");
   }
 }
 

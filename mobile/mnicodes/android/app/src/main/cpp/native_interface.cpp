@@ -38,3 +38,10 @@ bool NativeInterface::RenderNextFrame() {
 std::string& NativeInterface::GetCodeName() {
 	return meta.name;
 }
+
+void NativeInterface::SetRotation(int angle) {
+	// TODO if angle is -1 let program know
+	if(angle != -1) {
+		runtime->SetRotation(angle);
+	}
+}
