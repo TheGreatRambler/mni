@@ -17,7 +17,12 @@ void mni_set_stroke(int r, int g, int b, int a);
 void mni_set_line_width(int w);
 // Draw rectangle with specified fill and stroke
 void mni_draw_rect(int x1, int y1, int x2, int y2);
-// TODO arc/circle
+// Draw arc (ovals and circles) with specified fill and stroke
+void mni_draw_oval(
+	int center_x, int center_y, int radius_x, int radius_y, float start_angle, float sweep_angle);
+void mni_draw_circle(int center_x, int center_y, int radius, float start_angle, float sweep_angle);
+void mni_draw_full_oval(int center_x, int center_y, int radius_x, int radius_y);
+void mni_draw_full_circle(int center_x, int center_y, int radius);
 // Draw rectangle over entire screen, ignore stroke
 void mni_clear_screen();
 // TODO paths
@@ -58,16 +63,20 @@ int mni_get_rotation();
 	{5,  "mni_set_stroke"},           \
 	{6,  "mni_set_line_width"},       \
 	{7,  "mni_draw_rect"},            \
-	{8,  "mni_clear_screen"},         \
-	{9,  "mni_set_font"},             \
-	{10, "mni_set_font_size"},        \
-	{11, "mni_get_text_width"},       \
-	{12, "mni_draw_text"},            \
-	{13, "mni_draw_text_fill"},       \
-	{14, "mni_draw_rgb"},             \
-	{15, "mni_draw_rgba"},            \
-	{16, "mni_load_png"},             \
-	{17, "mni_get_rotation"}          \
+	{8,  "mni_draw_oval"},            \
+	{9,  "mni_draw_circle"},          \
+	{10, "mni_draw_full_oval"},       \
+	{11, "mni_draw_full_circle"},     \
+	{12, "mni_clear_screen"},         \
+	{13, "mni_set_font"},             \
+	{14, "mni_set_font_size"},        \
+	{15, "mni_get_text_width"},       \
+	{16, "mni_draw_text"},            \
+	{17, "mni_draw_text_fill"},       \
+	{18, "mni_draw_rgb"},             \
+	{19, "mni_draw_rgba"},            \
+	{20, "mni_load_png"},             \
+	{21, "mni_get_rotation"}          \
 }
 // clang-format on
 

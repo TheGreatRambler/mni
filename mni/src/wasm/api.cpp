@@ -98,6 +98,85 @@ namespace Mni {
 					wasm_valtype_new_i32(), wasm_valtype_new_i32() }))
 
 			CREATE_IMPORT(
+				draw_oval,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)results;
+					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32
+						&& args[2].kind == WASM_I32 && args[3].kind == WASM_I32
+						&& args[4].kind == WASM_F32 && args[5].kind == WASM_F32) {
+						int center_x = args[0].of.i32;
+						int center_y = args[1].of.i32;
+						int radius_x = args[2].of.i32;
+						int radius_y = args[3].of.i32;
+						auto bounds  = SkRect::MakeLTRB(center_x - radius_x, center_y - radius_y,
+							 center_x + radius_x, center_y + radius_y);
+						canvas->drawArc(bounds, args[4].of.f32, args[5].of.f32, false, fill_paint);
+						canvas->drawArc(
+							bounds, args[4].of.f32, args[5].of.f32, false, stroke_paint);
+					}
+				},
+				ConstructFunction(
+					{ wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32(),
+						wasm_valtype_new_i32(), wasm_valtype_new_f32(), wasm_valtype_new_f32() }))
+
+			CREATE_IMPORT(
+				draw_circle,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)results;
+					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32
+						&& args[2].kind == WASM_I32 && args[3].kind == WASM_F32
+						&& args[4].kind == WASM_F32) {
+						int center_x = args[0].of.i32;
+						int center_y = args[1].of.i32;
+						int radius   = args[2].of.i32;
+						auto bounds  = SkRect::MakeLTRB(center_x - radius, center_y - radius,
+							 center_x + radius, center_y + radius);
+						canvas->drawArc(bounds, args[3].of.f32, args[4].of.f32, false, fill_paint);
+						canvas->drawArc(
+							bounds, args[3].of.f32, args[4].of.f32, false, stroke_paint);
+					}
+				},
+				ConstructFunction({ wasm_valtype_new_i32(), wasm_valtype_new_i32(),
+					wasm_valtype_new_i32(), wasm_valtype_new_f32(), wasm_valtype_new_f32() }))
+
+			CREATE_IMPORT(
+				draw_full_oval,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)results;
+					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32
+						&& args[2].kind == WASM_I32 && args[3].kind == WASM_I32) {
+						int center_x = args[0].of.i32;
+						int center_y = args[1].of.i32;
+						int radius_x = args[2].of.i32;
+						int radius_y = args[3].of.i32;
+						auto bounds  = SkRect::MakeLTRB(center_x - radius_x, center_y - radius_y,
+							 center_x + radius_x, center_y + radius_y);
+						canvas->drawArc(bounds, 0.0f, 360.0f, false, fill_paint);
+						canvas->drawArc(bounds, 0.0f, 360.0f, false, stroke_paint);
+					}
+				},
+				ConstructFunction({ wasm_valtype_new_i32(), wasm_valtype_new_i32(),
+					wasm_valtype_new_i32(), wasm_valtype_new_i32() }))
+
+			CREATE_IMPORT(
+				draw_full_circle,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)results;
+					if(args[0].kind == WASM_I32 && args[1].kind == WASM_I32
+						&& args[2].kind == WASM_I32) {
+						int center_x = args[0].of.i32;
+						int center_y = args[1].of.i32;
+						int radius   = args[2].of.i32;
+						auto bounds  = SkRect::MakeLTRB(center_x - radius, center_y - radius,
+							 center_x + radius, center_y + radius);
+						canvas->drawArc(bounds, 0.0f, 360.0f, false, fill_paint);
+						canvas->drawArc(bounds, 0.0f, 360.0f, false, stroke_paint);
+					}
+				},
+				ConstructFunction(
+					{ wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32() }))
+
+			CREATE_IMPORT(
 				clear_screen,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					(void)args;
