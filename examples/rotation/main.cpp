@@ -31,9 +31,8 @@ bool mni_render(int64_t timestamp) {
 	mni_set_fill(255, 255, 255, 255);
 	mni_clear_screen();
 
-	int temp_angle = mni_get_rotation();
-	if(temp_angle != -1) {
-		angle = temp_angle;
+	if(mni_has_rotation()) {
+		angle = mni_get_rotation();
 	}
 
 	char buf[4];

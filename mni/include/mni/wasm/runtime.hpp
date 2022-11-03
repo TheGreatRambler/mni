@@ -107,6 +107,7 @@ namespace Mni {
 			DECLARE_IMPORT(draw_rgb)
 			DECLARE_IMPORT(draw_rgba)
 			DECLARE_IMPORT(load_png)
+			DECLARE_IMPORT(has_rotation)
 			DECLARE_IMPORT(get_rotation)
 			DECLARE_IMPORT(is_pressed)
 			DECLARE_IMPORT(get_x_pressed)

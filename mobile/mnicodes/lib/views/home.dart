@@ -13,6 +13,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final List<AppLifecycleState> stateHistory = <AppLifecycleState>[];
   bool isLoading = true;
+  double renderWidth = 512;
+  double renderHeight = 512;
 
   @override
   void initState() {
@@ -80,10 +82,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   return Center(
                     child: GestureDetector(
                         onPanStart: (e) async {
-                          await NativeBridge().startPress(e.localPosition.dx, e.localPosition.dy);
+                          var renderBox = context.findRenderObject() as RenderBox;
+                          var scaleX = renderBox.size.width / renderWidth;
+                          var scaleY = renderBox.size.height / renderHeight;
+                          await NativeBridge().startPress(e.localPosition.dx / scaleX, e.localPosition.dy * scaleY);
                         },
                         onPanUpdate: (e) async {
-                          await NativeBridge().holdPress(e.localPosition.dx, e.localPosition.dy);
+                          var renderBox = context.findRenderObject() as RenderBox;
+                          var scaleX = renderBox.size.width / renderWidth;
+                          var scaleY = renderBox.size.height / renderHeight;
+                          await NativeBridge().holdPress(e.localPosition.dx / scaleX, e.localPosition.dy * scaleY);
                         },
                         onPanEnd: (e) async {
                           await NativeBridge().endPress();
@@ -91,8 +99,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         child: AspectRatio(
                           aspectRatio: 1 / 1,
                           child: SizedBox(
-                            width: 512,
-                            height: 512,
+                            width: renderWidth,
+                            height: renderHeight,
                             child: Texture(textureId: currentState.texture),
                           ),
                         )),
