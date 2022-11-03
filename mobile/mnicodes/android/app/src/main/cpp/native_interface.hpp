@@ -18,6 +18,7 @@ public:
 	std::string& GetCodeName();
 
 	void SetRotation(int angle);
+	void SetPress(float x, float y);
 
 private:
 	std::vector<uint8_t> optimized_wasm_bytes;

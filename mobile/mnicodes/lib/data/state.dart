@@ -8,14 +8,14 @@ import 'package:image/image.dart' as img;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mnicodes/data/mediastore.dart';
+import 'package:mnicodes/data/nativebridge.dart';
 
 class CurrentState extends ChangeNotifier {
   int texture = 0;
 
   Future<void> start() async {
     var temp = await rootBundle.load("assets/main.owasm");
-    texture = await MediaStore().createTexture(temp.buffer.asUint8List());
+    texture = await NativeBridge().createTexture(temp.buffer.asUint8List());
   }
 }
 

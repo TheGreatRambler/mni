@@ -318,6 +318,30 @@ namespace Mni {
 				},
 				ConstructFunction({}, { wasm_valtype_new_i32() }))
 
+			CREATE_IMPORT(
+				is_pressed,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)args;
+					results[0] = WASM_I32_VAL(press_x != -1.0f && press_y != -1.0f);
+				},
+				ConstructFunction({}, { wasm_valtype_new_i32() }))
+
+			CREATE_IMPORT(
+				get_x_pressed,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)args;
+					results[0] = WASM_F32_VAL(press_x);
+				},
+				ConstructFunction({}, { wasm_valtype_new_f32() }))
+
+			CREATE_IMPORT(
+				get_y_pressed,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					(void)args;
+					results[0] = WASM_F32_VAL(press_y);
+				},
+				ConstructFunction({}, { wasm_valtype_new_f32() }))
+
 			return true;
 		}
 	}

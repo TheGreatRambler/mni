@@ -229,6 +229,19 @@ namespace Mni {
 					break;
 				}
 			}
+
+			int x, y;
+			uint32_t buttons;
+			SDL_PumpEvents();
+			buttons = SDL_GetMouseState(&x, &y);
+
+			if((buttons & SDL_BUTTON_LMASK) != 0) {
+				press_x = x;
+				press_y = y;
+			} else {
+				press_x = -1.0f;
+				press_y = -1.0f;
+			}
 #else
 // Don't do anything for now
 #endif

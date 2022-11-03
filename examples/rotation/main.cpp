@@ -14,6 +14,7 @@ const char* mni_name() {
 constexpr int width     = 500;
 constexpr int height    = 500;
 constexpr int font_size = 60;
+int angle               = 0;
 
 EMSCRIPTEN_KEEPALIVE
 bool mni_prepare() {
@@ -30,8 +31,12 @@ bool mni_render(int64_t timestamp) {
 	mni_set_fill(255, 255, 255, 255);
 	mni_clear_screen();
 
+	int temp_angle = mni_get_rotation();
+	if(temp_angle != -1) {
+		angle = temp_angle;
+	}
+
 	char buf[4];
-	int angle    = mni_get_rotation();
 	int buf_size = sprintf(buf, "%d", angle);
 
 	int center_x = width / 2;

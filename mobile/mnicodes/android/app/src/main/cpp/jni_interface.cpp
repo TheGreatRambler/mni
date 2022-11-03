@@ -41,6 +41,11 @@ JNI_METHOD(jboolean, setRotation)(JNIEnv* env, jclass, jint angle) {
 	return (jboolean) true;
 }
 
+JNI_METHOD(jboolean, setPress)(JNIEnv* env, jclass, jdouble x, jdouble y) {
+	interface->SetPress(x, y);
+	return (jboolean) true;
+}
+
 JNIEnv* GetJniEnv() {
 	JNIEnv* env;
 	jint result = g_vm->AttachCurrentThread(&env, nullptr);

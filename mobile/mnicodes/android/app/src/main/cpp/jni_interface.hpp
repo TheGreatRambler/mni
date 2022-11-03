@@ -11,4 +11,5 @@ JNI_METHOD(jboolean, loadFromBuffer)(JNIEnv* env, jclass, jbyteArray);
 JNI_METHOD(jboolean, renderNextFrame)(JNIEnv* env, jclass);
 
 JNI_METHOD(jboolean, setRotation)(JNIEnv* env, jclass, jint);
+JNI_METHOD(jboolean, setPress)(JNIEnv* env, jclass, jdouble, jdouble);
 }

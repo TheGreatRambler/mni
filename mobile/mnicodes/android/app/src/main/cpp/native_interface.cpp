@@ -40,8 +40,9 @@ std::string& NativeInterface::GetCodeName() {
 }
 
 void NativeInterface::SetRotation(int angle) {
-	// TODO if angle is -1 let program know
-	if(angle != -1) {
-		runtime->SetRotation(angle);
-	}
+	runtime->SetRotation(angle);
+}
+
+void NativeInterface::SetPress(float x, float y) {
+	runtime->SetPress(x, y);
 }

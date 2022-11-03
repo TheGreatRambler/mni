@@ -46,6 +46,9 @@ uint8_t* mni_load_png(char* image, int& w, int& h);
 
 // Input handling
 int mni_get_rotation();
+bool mni_is_pressed();
+float mni_get_x_pressed();
+float mni_get_y_pressed();
 
 #ifdef __cplusplus
 }
@@ -76,7 +79,10 @@ int mni_get_rotation();
 	{18, "mni_draw_rgb"},             \
 	{19, "mni_draw_rgba"},            \
 	{20, "mni_load_png"},             \
-	{21, "mni_get_rotation"}          \
+	{21, "mni_get_rotation"},         \
+	{22, "mni_is_pressed"},           \
+	{23, "mni_get_x_pressed"},        \
+	{24, "mni_get_y_pressed"}         \
 }
 // clang-format on
 

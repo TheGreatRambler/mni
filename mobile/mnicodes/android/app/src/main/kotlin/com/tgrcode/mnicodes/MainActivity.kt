@@ -1,6 +1,7 @@
 package com.tgrcode.mnicodes
 
 import android.content.ContentValues
+import android.graphics.SurfaceTexture 
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.Environment
@@ -14,19 +15,21 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.IOException
 
+
 class MainActivity : FlutterActivity() {
     private lateinit var renderer: FlutterRenderer
     private lateinit var orientationListener: OrientationEventListener
 
     //private lateinit var surfaceTexture: SurfaceTexture
     //private lateinit var surfaceTextureEntry: TextureRegistry.SurfaceTextureEntry
+	private var textures = HashMap<Long, SurfaceTexture>()
     private var renders = HashMap<Long, MniRenderer>()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         renderer = flutterEngine.getRenderer()
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "flutter_media_store")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "native_bridge")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "addItem" -> {
@@ -49,6 +52,19 @@ class MainActivity : FlutterActivity() {
                         //    call.argument("textureID")!!
                         //))
                     }
+					"startPress",
+					"holdPress" -> {
+						var x: Double = call.argument("x")!!
+						var y: Double = call.argument("y")!!
+						for (render in renders.values) {
+							render.setPressSync(x, y)
+						}
+					}
+					"endPress" -> {
+						for (render in renders.values) {
+							render.setPressSync(-1.0, -1.0)
+						}
+					}
                 }
             }
 
@@ -58,7 +74,7 @@ class MainActivity : FlutterActivity() {
         ) {
             override fun onOrientationChanged(angle: Int) {
                 for (render in renders.values) {
-                    render.rotation.set(angle)
+                    render.setRotationSync(angle)
                 }
             }
         }
@@ -85,6 +101,7 @@ class MainActivity : FlutterActivity() {
 
         var render = MniRenderer(surfaceTexture, buffer);
 
+        textures.put(entry.id(), surfaceTexture);
         renders.put(entry.id(), render);
 
         return entry.id();

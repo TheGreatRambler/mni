@@ -3,14 +3,12 @@ package com.tgrcode.mnicodes
 import android.graphics.SurfaceTexture
 import android.opengl.GLUtils
 import android.util.Log
-
+import java.util.concurrent.atomic.AtomicInteger
 import javax.microedition.khronos.egl.EGL10
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.egl.EGLContext
 import javax.microedition.khronos.egl.EGLDisplay
 import javax.microedition.khronos.egl.EGLSurface
-
-import java.util.concurrent.atomic.AtomicInteger
 
 class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
     companion object {
@@ -23,9 +21,12 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
         external fun loadFromBuffer(buffer: ByteArray): Boolean
         external fun renderNextFrame(): Boolean
         external fun setRotation(angle: Int): Boolean
+		external fun setPress(x: Double, y: Double): Boolean
     }
 
-    public var rotation: AtomicInteger = AtomicInteger(0)
+    public var rotation: Int = 0
+	public var x_press: Double = -1.0;
+	public var y_press: Double = -1.0;
 
     protected val texture: SurfaceTexture
     private lateinit var egl: EGL10
@@ -46,7 +47,9 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
             val loopStart: Long = System.currentTimeMillis()
 
             // Send in input
-            setRotation(rotation.get())
+            setRotation(getRotationSync())
+			val (x, y) = getPressSync()
+			setPress(x, y)
 
             if (renderNextFrame()) {
                 if (!egl.eglSwapBuffers(eglDisplay, eglSurface)) {
@@ -66,6 +69,27 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
         //worker.onDispose()
 
         deinitGL()
+    }
+
+    @Synchronized
+    fun setRotationSync(angle: Int) {
+        rotation = angle
+    }
+
+	@Synchronized
+    fun getRotationSync(): Int {
+        return rotation
+    }
+
+	@Synchronized
+    fun setPressSync(x: Double, y: Double) {
+        x_press = x
+		y_press = y
+    }
+
+	@Synchronized
+    fun getPressSync(): Pair<Double, Double> {
+        return Pair(x_press, y_press)
     }
 
     private fun initGL() {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mnicodes/data/state.dart';
 import 'package:provider/provider.dart';
+import 'package:mnicodes/data/nativebridge.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -77,11 +78,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             : Consumer<CurrentState>(
                 builder: (context, currentState, child) {
                   return Center(
-                    child: Container(
-                      width: 512,
-                      height: 512,
-                      child: Texture(textureId: currentState.texture),
-                    ),
+                    child: GestureDetector(
+                        onPanStart: (e) async {
+                          await NativeBridge().startPress(e.localPosition.dx, e.localPosition.dy);
+                        },
+                        onPanUpdate: (e) async {
+                          await NativeBridge().holdPress(e.localPosition.dx, e.localPosition.dy);
+                        },
+                        onPanEnd: (e) async {
+                          await NativeBridge().endPress();
+                        },
+                        child: AspectRatio(
+                          aspectRatio: 1 / 1,
+                          child: SizedBox(
+                            width: 512,
+                            height: 512,
+                            child: Texture(textureId: currentState.texture),
+                          ),
+                        )),
                   );
                 },
               ));

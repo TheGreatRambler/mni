@@ -72,6 +72,11 @@ namespace Mni {
 				rotation = angle;
 			}
 
+			void SetPress(float x, float y) {
+				press_x = x;
+				press_y = y;
+			}
+
 		private:
 			bool PrepareWindow();
 			bool AttachImports();
@@ -103,6 +108,9 @@ namespace Mni {
 			DECLARE_IMPORT(draw_rgba)
 			DECLARE_IMPORT(load_png)
 			DECLARE_IMPORT(get_rotation)
+			DECLARE_IMPORT(is_pressed)
+			DECLARE_IMPORT(get_x_pressed)
+			DECLARE_IMPORT(get_y_pressed)
 
 #define DECLARE_EXPORT(name)                                                                       \
 	wasmtime_extern_t mni_##name;                                                                  \
@@ -121,6 +129,8 @@ namespace Mni {
 
 			// Input variables
 			int rotation { 0 };
+			float press_x { -1.0f };
+			float press_y { -1.0f };
 
 			bool have_window { false };
 #ifndef ANDROID
