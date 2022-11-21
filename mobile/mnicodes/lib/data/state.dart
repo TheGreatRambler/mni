@@ -14,8 +14,14 @@ class CurrentState extends ChangeNotifier {
   int texture = 0;
 
   Future<void> start() async {
-    var temp = await rootBundle.load("assets/main.owasm");
-    texture = await NativeBridge().createTexture(temp.buffer.asUint8List());
+    // TODO
+    //var temp = await rootBundle.load("assets/main.owasm");
+    //texture = await NativeBridge().createTexture(temp.buffer.asUint8List());
+  }
+
+  Future<void> loadFromQR(Uint8List buffer) async {
+    texture = await NativeBridge().createTexture(buffer);
+    notifyListeners();
   }
 }
 

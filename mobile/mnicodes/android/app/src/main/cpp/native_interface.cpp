@@ -10,6 +10,8 @@ bool NativeInterface::LoadFromBuffer(uint8_t* buffer, size_t size) {
 		optimized_wasm_bytes.assign(buffer, buffer + size);
 		Mni::Wasm::OptimizedToNormal(wasm_bytes, 0, optimized_wasm_bytes);
 
+		if(runtime)
+			runtime->Close();
 		runtime = std::make_shared<Mni::Wasm::Runtime>(wasm_bytes);
 
 		if(!runtime->PrepareWasm()) {

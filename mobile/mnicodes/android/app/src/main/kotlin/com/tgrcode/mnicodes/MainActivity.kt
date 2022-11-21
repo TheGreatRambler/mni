@@ -12,6 +12,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.renderer.FlutterRenderer
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.view.TextureRegistry
 import java.io.File
 import java.io.IOException
 
@@ -22,8 +23,8 @@ class MainActivity : FlutterActivity() {
 
     //private lateinit var surfaceTexture: SurfaceTexture
     //private lateinit var surfaceTextureEntry: TextureRegistry.SurfaceTextureEntry
-	private var textures = HashMap<Long, SurfaceTexture>()
-    private var renders = HashMap<Long, MniRenderer>()
+	private var mainTexture: TextureRegistry.SurfaceTextureEntry? = null
+	private var mainRender: MniRenderer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -56,13 +57,13 @@ class MainActivity : FlutterActivity() {
 					"holdPress" -> {
 						var x: Double = call.argument("x")!!
 						var y: Double = call.argument("y")!!
-						for (render in renders.values) {
-							render.setPressSync(x, y)
+						if (mainRender != null) {
+							mainRender?.setPressSync(x, y)
 						}
 					}
 					"endPress" -> {
-						for (render in renders.values) {
-							render.setPressSync(-1.0, -1.0)
+						if (mainRender != null) {
+							mainRender?.setPressSync(-1.0, -1.0)
 						}
 					}
                 }
@@ -73,9 +74,9 @@ class MainActivity : FlutterActivity() {
             this, SensorManager.SENSOR_DELAY_GAME
         ) {
             override fun onOrientationChanged(angle: Int) {
-                for (render in renders.values) {
-                    render.setRotationSync(angle)
-                }
+				if (mainRender != null) {
+					mainRender?.setRotationSync(angle)
+				}
             }
         }
 
@@ -89,22 +90,30 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun getFlutterTexture(buffer: ByteArray): Long {
-        // https://github.com/mogol/opengl_texture_widget_example
-        var entry = renderer.createSurfaceTexture();
-        var surfaceTexture = entry.surfaceTexture();
+		if (mainTexture == null) {
+			// https://github.com/mogol/opengl_texture_widget_example
+			var entry = renderer.createSurfaceTexture();
+			var surfaceTexture = entry.surfaceTexture();
 
-        //int width = arguments.get("width").intValue();
-        //int height = arguments.get("height").intValue();
-        var width = 512;
-        var height = 512;
-        surfaceTexture.setDefaultBufferSize(width, height);
+			//int width = arguments.get("width").intValue();
+			//int height = arguments.get("height").intValue();
+			var width = 512;
+			var height = 512;
+			surfaceTexture.setDefaultBufferSize(width, height);
 
-        var render = MniRenderer(surfaceTexture, buffer);
+			mainTexture = entry
+			mainRender = MniRenderer(surfaceTexture, buffer);
+		} else {
+			mainRender?.setBuffer(buffer)
+			mainRender?.triggerReload()
+		}
 
-        textures.put(entry.id(), surfaceTexture);
-        renders.put(entry.id(), render);
-
-        return entry.id();
+		var id = mainTexture?.id()
+		if (id != null) {
+			return id
+		} else {
+			return 0
+		}
     }
 
     private fun addItem(path: String, name: String, mimeType: String) {

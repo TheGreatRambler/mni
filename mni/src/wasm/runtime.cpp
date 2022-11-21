@@ -116,13 +116,13 @@ namespace Mni {
 
 			GrGLFramebufferInfo buffer_info;
 			buffer_info.fFBOID  = (GrGLuint)buffer;
-			buffer_info.fFormat = GL_RGB8;
+			buffer_info.fFormat = GL_RGBA8;
 
 			GrBackendRenderTarget target(width, height, 0, 0, buffer_info);
 
 			SkSurfaceProps props;
 			surface = SkSurface::MakeFromBackendRenderTarget(gr_context.get(), target,
-				kBottomLeft_GrSurfaceOrigin, kRGB_888x_SkColorType, nullptr, &props);
+				kBottomLeft_GrSurfaceOrigin, kRGBA_8888_SkColorType, nullptr, &props);
 			canvas  = surface->getCanvas();
 
 			have_window = true;

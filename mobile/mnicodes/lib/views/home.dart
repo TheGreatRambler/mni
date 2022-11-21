@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mnicodes/data/state.dart';
+import 'package:mnicodes/views/scan_for_qr.dart';
 import 'package:provider/provider.dart';
 import 'package:mnicodes/data/nativebridge.dart';
 
@@ -77,35 +78,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         body: isLoading // Texture 0 is actuallty the camera
             ? const Center(child: CircularProgressIndicator())
-            : Consumer<CurrentState>(
-                builder: (context, currentState, child) {
-                  return Center(
-                    child: GestureDetector(
-                        onPanStart: (e) async {
-                          var renderBox = context.findRenderObject() as RenderBox;
-                          var scaleX = renderBox.size.width / renderWidth;
-                          var scaleY = renderBox.size.height / renderHeight;
-                          await NativeBridge().startPress(e.localPosition.dx / scaleX, e.localPosition.dy * scaleY);
-                        },
-                        onPanUpdate: (e) async {
-                          var renderBox = context.findRenderObject() as RenderBox;
-                          var scaleX = renderBox.size.width / renderWidth;
-                          var scaleY = renderBox.size.height / renderHeight;
-                          await NativeBridge().holdPress(e.localPosition.dx / scaleX, e.localPosition.dy * scaleY);
-                        },
-                        onPanEnd: (e) async {
-                          await NativeBridge().endPress();
-                        },
-                        child: AspectRatio(
-                          aspectRatio: 1 / 1,
-                          child: SizedBox(
-                            width: renderWidth,
-                            height: renderHeight,
-                            child: Texture(textureId: currentState.texture),
-                          ),
-                        )),
-                  );
-                },
-              ));
+            : ScanForQR());
   }
 }

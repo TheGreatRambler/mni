@@ -35,14 +35,17 @@ bool mni_render(int64_t timestamp) {
 		angle = mni_get_rotation();
 	}
 
-	char buf[4];
-	int buf_size = sprintf(buf, "%d", angle);
-
 	int center_x = width / 2;
 	int center_y = height / 2;
-	mni_set_fill(0, 0, 0, 255);
-	int text_width = mni_get_text_width(buf);
-	mni_draw_text_fill(buf, center_x - (text_width / 2), center_y);
+
+	/*
+		char buf[4];
+		int buf_size = sprintf(buf, "%d", angle);
+
+		mni_set_fill(0, 0, 0, 255);
+		int text_width = mni_get_text_width(buf);
+		mni_draw_text_fill(buf, center_x - (text_width / 2), center_y);
+	*/
 
 	mni_set_fill(0, 0, 0, 0);
 	mni_draw_circle(center_x, center_y, 150, 90.0f + 30.0f - angle, -60.0f);

@@ -5,12 +5,15 @@ for d in */ ; do
 	# Covert to optimized wasm
 	echo mni compile -o ${d}main.owasm ${d}main.wasm
 	../build/mni.exe compile -o ${d}main.owasm ${d}main.wasm
+	# Convert to QR code
+	echo mni compile -q ${d}main.png ${d}main.wasm
+	../build/mni.exe compile -q ${d}main.png ${d}main.wasm
 	# Start runtime
 	echo mni run --wasm ${d}main.owasm
 	../build/mni.exe run --wasm ${d}main.owasm
 	# Remove both binaries
-	if [[ -z $1 ]] || [[ "$1" != "nodelete" ]]; then
-		rm ${d}main.owasm
-		rm ${d}main.wasm
-	fi
+	#if [[ -z $1 ]] || [[ "$1" != "nodelete" ]]; then
+	#	rm ${d}main.owasm
+	#	rm ${d}main.wasm
+	#fi
 done

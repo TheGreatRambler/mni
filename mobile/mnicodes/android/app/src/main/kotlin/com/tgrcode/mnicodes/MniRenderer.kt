@@ -35,6 +35,7 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
     private lateinit var eglSurface: EGLSurface
     private lateinit var buffer: ByteArray
     private var running: Boolean
+	private var reload: Boolean = false
 
     override fun run() {
         initGL()
@@ -45,6 +46,11 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
         Log.d(LOG_TAG, "OpenGL init OK.")
         while (running) {
             val loopStart: Long = System.currentTimeMillis()
+
+			if (reload) {
+				loadFromBuffer(buffer)
+				reload = false
+			}
 
             // Send in input
             setRotation(getRotationSync())
@@ -90,6 +96,16 @@ class MniRenderer(texture: SurfaceTexture, buffer: ByteArray) : Runnable {
 	@Synchronized
     fun getPressSync(): Pair<Double, Double> {
         return Pair(x_press, y_press)
+    }
+
+	@Synchronized
+    fun setBuffer(buffer: ByteArray) {
+        this.buffer = buffer
+    }
+
+	@Synchronized
+    fun triggerReload() {
+        this.reload = true
     }
 
     private fun initGL() {
