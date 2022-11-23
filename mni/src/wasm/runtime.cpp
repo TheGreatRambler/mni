@@ -7,6 +7,7 @@
 #include <gpu/GrDirectContext.h>
 #include <gpu/gl/GrGLInterface.h>
 #include <thread>
+#include <wasi.h>
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -33,21 +34,18 @@ namespace Mni {
 
 #if defined(__EMSCRIPTEN__)
 			// WebGL1 + GL ES2
-			const char* glsl_version = "#version 100";
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #elif defined(IMGUI_IMPL_OPENGL_ES2)
 			// GL ES 2.0 + GLSL 100
-			const char* glsl_version = "#version 100";
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #elif defined(__APPLE__)
 			// GL 3.2 Core + GLSL 150
-			const char* glsl_version = "#version 150";
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
 				SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on
 														 // Mac
@@ -56,7 +54,6 @@ namespace Mni {
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 #else
 			// GL 3.0 + GLSL 130
-			const char* glsl_version = "#version 130";
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -135,7 +132,6 @@ namespace Mni {
 				wasm_name_t message;
 				wasmtime_error_message(error, &message);
 				wasmtime_error_delete(error);
-				// TODO error is a c string contained within message.data with size message.size
 				std::cerr << "Wasmtime Error: "
 						  << std::string(message.data, message.data + message.size) << std::endl;
 				wasm_byte_vec_delete(&message);
@@ -164,6 +160,17 @@ namespace Mni {
 			error = wasmtime_module_new(engine, wasm_bytes.data(), wasm_bytes.size(), &module);
 			HandleErrors();
 
+			wasi_config_t* wasi_config = wasi_config_new();
+			wasi_config_inherit_argv(wasi_config);
+			wasi_config_inherit_env(wasi_config);
+			wasi_config_inherit_stdin(wasi_config);
+			wasi_config_inherit_stdout(wasi_config);
+			wasi_config_inherit_stderr(wasi_config);
+			error = wasmtime_context_set_wasi(context, wasi_config);
+			HandleErrors();
+
+			error = wasmtime_linker_define_wasi(linker);
+			HandleErrors();
 			AttachImports();
 
 			// Create instance using imports

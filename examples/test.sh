@@ -1,6 +1,11 @@
 for d in */ ; do
+	# If argument provided, only do that one
+	if [[ $# -gt 0 ]] && [[ "$1" != "$d" ]]; then
+		continue
+	fi
+
 	echo Building ${d}main.owasm
-	# Build using emcc without filesystem or entry
+	#clang -Oz -I../mni/include --no-standard-libraries --target=wasm32 -Wl,--no-entry -Wl,--export-all -o ${d}main.wasm ${d}main.cpp
 	emcc -Oz -I../mni/include -sFILESYSTEM=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 --no-entry ${d}main.cpp -o ${d}main.wasm
 	# Covert to optimized wasm
 	echo mni compile -o ${d}main.owasm ${d}main.wasm
@@ -11,9 +16,4 @@ for d in */ ; do
 	# Start runtime
 	echo mni run --wasm ${d}main.owasm
 	../build/mni.exe run --wasm ${d}main.owasm
-	# Remove both binaries
-	#if [[ -z $1 ]] || [[ "$1" != "nodelete" ]]; then
-	#	rm ${d}main.owasm
-	#	rm ${d}main.wasm
-	#fi
 done
