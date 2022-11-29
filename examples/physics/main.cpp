@@ -1,9 +1,10 @@
 #include <emscripten.h>
 #include <math.h>
-#include <mni/wasm/imports.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <mni/wasm/imports.h>
 
 #define PHYSAC_NO_THREADS 1
 #define PHYSAC_STANDALONE 1

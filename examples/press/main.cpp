@@ -1,8 +1,8 @@
-#include <math.h>
-#include <mni/wasm/imports.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <mni/wasm/imports.h>
 
 extern "C" {
 __attribute__((used)) const char* mni_name() {

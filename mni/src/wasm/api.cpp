@@ -20,6 +20,20 @@
 		},                                                                                         \
 		&func_##name, NULL);
 
+#define CREATE_IMPORT_NOPREFIX(name, func, functype)                                               \
+	func_##name = std::function(func);                                                             \
+	wasmtime_linker_define_func(                                                                   \
+		linker, "env", strlen("env"), #name, strlen(#name), functype,                              \
+		[](void* env, wasmtime_caller_t* caller, const wasmtime_val_t* args, size_t nargs,         \
+			wasmtime_val_t* results, size_t nresults) -> wasm_trap_t* {                            \
+			(void)caller;                                                                          \
+			(void)nargs;                                                                           \
+			(void)nresults;                                                                        \
+			(*(decltype(func_##name)*)env)(args, results);                                         \
+			return NULL;                                                                           \
+		},                                                                                         \
+		&func_##name, NULL);
+
 namespace Mni {
 	namespace Wasm {
 		bool Runtime::AttachImports() {
@@ -349,6 +363,42 @@ namespace Mni {
 					results[0] = WASM_F32_VAL(press_y);
 				},
 				ConstructFunction({}, { wasm_valtype_new_f32() }))
+
+			CREATE_IMPORT_NOPREFIX(
+				sinf,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					if(args[0].kind == WASM_F32) {
+						results[0] = WASM_F32_VAL(sinf(args[0].of.f32));
+					}
+				},
+				ConstructFunction({ wasm_valtype_new_f32() }, { wasm_valtype_new_f32() }))
+
+			CREATE_IMPORT_NOPREFIX(
+				cosf,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					if(args[0].kind == WASM_F32) {
+						results[0] = WASM_F32_VAL(cosf(args[0].of.f32));
+					}
+				},
+				ConstructFunction({ wasm_valtype_new_f32() }, { wasm_valtype_new_f32() }))
+
+			CREATE_IMPORT_NOPREFIX(
+				sin,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					if(args[0].kind == WASM_F64) {
+						results[0] = WASM_F64_VAL(sin(args[0].of.f64));
+					}
+				},
+				ConstructFunction({ wasm_valtype_new_f64() }, { wasm_valtype_new_f64() }))
+
+			CREATE_IMPORT_NOPREFIX(
+				cos,
+				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
+					if(args[0].kind == WASM_F64) {
+						results[0] = WASM_F64_VAL(cos(args[0].of.f64));
+					}
+				},
+				ConstructFunction({ wasm_valtype_new_f64() }, { wasm_valtype_new_f64() }))
 
 			return true;
 		}

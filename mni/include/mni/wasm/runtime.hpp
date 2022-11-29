@@ -113,6 +113,11 @@ namespace Mni {
 			DECLARE_IMPORT(get_x_pressed)
 			DECLARE_IMPORT(get_y_pressed)
 
+			DECLARE_IMPORT(sinf)
+			DECLARE_IMPORT(cosf)
+			DECLARE_IMPORT(sin)
+			DECLARE_IMPORT(cos)
+
 #define DECLARE_EXPORT(name)                                                                       \
 	wasmtime_extern_t mni_##name;                                                                  \
 	bool name##_loaded = false;

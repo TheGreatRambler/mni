@@ -51,6 +51,12 @@ bool mni_is_pressed();
 float mni_get_x_pressed();
 float mni_get_y_pressed();
 
+// Built in math stdlib functions
+float sinf(float x);
+float cosf(float x);
+double sin(double x);
+double cos(double x);
+
 #ifdef __cplusplus
 }
 #endif
@@ -84,7 +90,11 @@ float mni_get_y_pressed();
 	{22, "mni_get_rotation"},         \
 	{23, "mni_is_pressed"},           \
 	{24, "mni_get_x_pressed"},        \
-	{25, "mni_get_y_pressed"}         \
+	{25, "mni_get_y_pressed"},        \
+	{26, "sinf"},                     \
+	{27, "cosf"},                     \
+	{28, "sin"},                      \
+	{29, "cos"}                       \
 }
 // clang-format on
 
