@@ -364,7 +364,7 @@ namespace Mni {
 				},
 				ConstructFunction({}, { wasm_valtype_new_f32() }))
 
-			CREATE_IMPORT_NOPREFIX(
+			CREATE_IMPORT(
 				sinf,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					if(args[0].kind == WASM_F32) {
@@ -373,7 +373,7 @@ namespace Mni {
 				},
 				ConstructFunction({ wasm_valtype_new_f32() }, { wasm_valtype_new_f32() }))
 
-			CREATE_IMPORT_NOPREFIX(
+			CREATE_IMPORT(
 				cosf,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					if(args[0].kind == WASM_F32) {
@@ -382,7 +382,7 @@ namespace Mni {
 				},
 				ConstructFunction({ wasm_valtype_new_f32() }, { wasm_valtype_new_f32() }))
 
-			CREATE_IMPORT_NOPREFIX(
+			CREATE_IMPORT(
 				sin,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					if(args[0].kind == WASM_F64) {
@@ -391,7 +391,7 @@ namespace Mni {
 				},
 				ConstructFunction({ wasm_valtype_new_f64() }, { wasm_valtype_new_f64() }))
 
-			CREATE_IMPORT_NOPREFIX(
+			CREATE_IMPORT(
 				cos,
 				[&](const wasmtime_val_t* args, wasmtime_val_t* results) -> void {
 					if(args[0].kind == WASM_F64) {

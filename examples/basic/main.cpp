@@ -1,6 +1,6 @@
-#include <stdint.h>
-
 #include <mni/wasm/imports.h>
+
+#include <stdint.h>
 
 extern "C" {
 __attribute__((used)) const char* mni_name() {
@@ -23,8 +23,7 @@ __attribute__((used)) bool mni_render(int64_t frame) {
 	// Set fill for clearing the screen
 	mni_set_fill(255, 255, 255, 255);
 	mni_clear_screen();
-	// sin pulls in 6 kilobytes, find way to replace it
-	int rect_size = sin(frame / 25.0) * 200 + 200;
+	int rect_size = mni_sin(frame / 25.0) * 200 + 200;
 
 	// Draw the box
 	mni_set_line_width(10);
