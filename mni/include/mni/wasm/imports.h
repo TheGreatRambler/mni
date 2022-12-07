@@ -91,10 +91,10 @@ double mni_cos(double x);
 	{23, "mni_is_pressed"},           \
 	{24, "mni_get_x_pressed"},        \
 	{25, "mni_get_y_pressed"},        \
-	{26, "mni_sinf"},                     \
-	{27, "mni_cosf"},                     \
-	{28, "mni_sin"},                      \
-	{29, "mni_cos"}                       \
+	{26, "mni_sinf"},                 \
+	{27, "mni_cosf"},                 \
+	{28, "mni_sin"},                  \
+	{29, "mni_cos"}                   \
 }
 // clang-format on
 
