@@ -40,7 +40,7 @@ __attribute__((used)) bool mni_render(int64_t frame) {
 	mni_set_fill(255, 255, 255, 255);
 	mni_clear_screen();
 
-	for(int i = 0; i < num_boxes; i++) {
+	for(int i = 0; i < 10; i++) {
 		auto& box = boxes[i];
 		mni_set_fill(box.r, box.g, box.b, 255);
 		mni_draw_rect(box.x, box.y, box.x + box.w, box.y + box.h);
@@ -71,14 +71,12 @@ __attribute__((used)) bool mni_render(int64_t frame) {
 
 	if(mni_is_pressed()) {
 		if(!currently_clicking) {
-			if(num_boxes < 9) {
-				boxes[num_boxes].x = mni_get_x_pressed();
-				boxes[num_boxes].y = mni_get_y_pressed();
-				boxes[num_boxes].r = frame % 255;
-				boxes[num_boxes].g = (frame + 127) % 255;
-				boxes[num_boxes].b = (frame + 50) % 255;
-				num_boxes++;
-			}
+			boxes[num_boxes % 10].x = mni_get_x_pressed();
+			boxes[num_boxes % 10].y = mni_get_y_pressed();
+			boxes[num_boxes % 10].r = frame % 255;
+			boxes[num_boxes % 10].g = (frame + 127) % 255;
+			boxes[num_boxes % 10].b = (frame + 50) % 255;
+			num_boxes++;
 			currently_clicking = true;
 		}
 	} else {
