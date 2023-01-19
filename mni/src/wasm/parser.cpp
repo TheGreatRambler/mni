@@ -144,6 +144,10 @@ namespace Mni {
 			return i;
 		}
 
+		void IO::Reset() {
+			i = 0;
+		}
+
 		void IO::WriteSlice(std::vector<uint8_t> slice) {
 			if(slice.size() != 0) {
 				bytes.resize(i + slice.size());
@@ -474,40 +478,6 @@ namespace Mni {
 			{ wasm::BinaryConsts::RefFunc, "ref.func" },
 		};
 
-		enum WasmItemType {
-			NUM,           // Number of something
-			SIZE,          // Size of something
-			SECTION,       // Section id and size
-			STRING,        // String of any kind
-			TYPE,          // Type, if negative refers to value types
-			INDEXED_TYPE,  // Type, only indexed
-			LIMIT,         // Limit
-			MEMORY_OP,     // For memory related operations
-			INSTRUCTION,   // Instruction
-			INSTRUCTION32, // Additional instructions
-			ATTRIBUTE,     // Attribute / Mutability
-			BREAK,         // Break offset, used in switch
-			FUNCTION,      // Function index
-			TABLE,         // Table index
-			LOCAL,         // Local index
-			GLOBAL,        // Global index
-			MEMORY,        // Memory index, different than MEMORY_IDX which is u8
-			TAG,           // Tag index
-			I32,           // Literal
-			I64,           // Literal
-			I128,          // Literal
-			F32,           // Literal
-			F64,           // Literal
-			ATOMIC_ORDER,  // Atomic order
-			SEGMENT,       // Data segment
-			MEMORY_IDX,    //  Memory index, must be 0 in current version of wasm
-			LANE,          // SIMD lane index
-			STRUCT,        // Struct index
-			EXTERNAL,      // Kind of external
-			FLAGS,         // Used in some places
-			DATA,          // Includes segments and user data
-		};
-
 		static std::unordered_map<WasmItemType, std::string> item_type_to_name = {
 			{ NUM, "NUM" },
 			{ SIZE, "SIZE" },
@@ -652,10 +622,7 @@ namespace Mni {
 			std::vector<uint8_t> data;
 		};
 
-		uint64_t ConvertWasm(std::vector<uint8_t>& wasm_bytes, uint64_t current_bit,
-			std::vector<uint8_t>& bytes, ParsingMode in, ParsingMode out) {
-			IO io(wasm_bytes);
-			OptimizedIO opt_io(bytes, current_bit);
+		void ConvertWasm(ParsingMode in, ParsingMode out, IO& io, OptimizedIO& opt_io) {
 
 			std::vector<WasmItem*> items;
 			size_t item_idx = 0;
@@ -841,6 +808,16 @@ namespace Mni {
                 switch(mode) {
                 case READ_NORMAL: {
                     uint8_t code = io.ReadU8();
+
+                    // Construct huffman frequencies
+                    if(io.huffman.INSTRUCTION_construct) {
+                        if(io.huffman.INSTRUCTION_frequencies.count(code)) {
+                            io.huffman.INSTRUCTION_frequencies[code].freq++;
+                        } else {
+                            io.huffman.INSTRUCTION_frequencies[code] = Tree::Node(code, 1);
+                        }
+                    }
+
                     items.push_back(new WasmInstruction { { INSTRUCTION }, code });
                     last_instruction = code;
                     return code;
@@ -850,15 +827,28 @@ namespace Mni {
                     io.WriteU8(item->node);
                 } break;
                 case READ_OPTIMIZED: {
-                    uint8_t code = opt_io.ReadUNum(8);
+                    uint8_t code;
+                    // Read from huffman tree if it exists
+                    if(opt_io.huffman.INSTRUCTION_tree) {
+                        opt_io.ReadHuffmanValue(opt_io.huffman.INSTRUCTION_root, &code);
+                    } else {
+                        code = opt_io.ReadUNum(8);
+                    }
+
                     items.push_back(new WasmInstruction { { INSTRUCTION }, code });
                     last_instruction = code;
                     return code;
                 } break;
                 case WRITE_OPTIMIZED: {
                     WasmInstruction* item = (WasmInstruction*)items[item_idx];
-                    // TODO
-                    opt_io.WriteUNum(item->node, 8);
+
+                    // Use huffman trees constructed earlier
+                    if(io.huffman.INSTRUCTION_rep) {
+                        auto& rep = io.huffman.INSTRUCTION_rep_map[item->node];
+                        opt_io.WriteUNum(rep.representation, rep.bit_size);
+                    } else {
+                        opt_io.WriteUNum(item->node, 8);
+                    }
                 } break;
                 }
                 return (uint8_t)0;
@@ -1619,6 +1609,13 @@ namespace Mni {
 
 					if(mode == READ_OPTIMIZED) {
 						opt_io.ReadSize();
+
+						// Read header information
+						if(opt_io.ReadUNum(1)) {
+							// Huffman tree for INSTRUCTION is included
+							opt_io.huffman.INSTRUCTION_tree = true;
+							opt_io.ReadHuffmanHeader(opt_io.huffman.INSTRUCTION_root);
+						}
 					}
 
 					while(mode == READ_NORMAL ? !io.Done() : !opt_io.Done()) {
@@ -1800,6 +1797,15 @@ namespace Mni {
 						io.WriteU32(wasm::BinaryConsts::Version);
 					}
 
+					if(mode == WRITE_OPTIMIZED) {
+						// Write some header information
+						// Starting with huffman trees (if they exist)
+						opt_io.WriteUNum(io.huffman.INSTRUCTION_rep, 1);
+						if(opt_io.huffman.INSTRUCTION_rep) {
+							opt_io.WriteHuffmanHeader(opt_io.huffman.INSTRUCTION_rep_map);
+						}
+					}
+
 					for(size_t i = 0; i < items.size(); i++) {
 						switch(items[i]->type) {
 						case NUM:
@@ -1898,25 +1904,51 @@ namespace Mni {
 
 			mode = in;
 			HandleReadOrWrite();
-			mode = out;
-			HandleReadOrWrite();
+			if(out != NONE) {
+				mode = out;
+				HandleReadOrWrite();
+			}
 
 			for(auto item : items) {
 				// Deallocate webassembly items
 				delete item;
 			}
-
-			return opt_io.GetCurrentBit();
 		}
 
 		uint64_t NormalToOptimized(
 			std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			return ConvertWasm(wasm_bytes, current_bit, bytes, READ_NORMAL, WRITE_OPTIMIZED);
+			constexpr bool generate_huffman_trees = true;
+
+			// Construct neccesary huffman trees
+			Huffman huffman;
+			if(generate_huffman_trees) {
+				huffman.INSTRUCTION_construct = true;
+			}
+
+			IO io(wasm_bytes, huffman);
+			OptimizedIO opt_io(bytes, current_bit, huffman);
+			ConvertWasm(READ_NORMAL, NONE, io, opt_io);
+
+			if(generate_huffman_trees) {
+				huffman.INSTRUCTION_generate_rep();
+			}
+
+			// Generate optimized with huffman trees
+			if(generate_huffman_trees) {
+				huffman.INSTRUCTION_construct = false;
+			}
+			io.Reset();
+			ConvertWasm(READ_NORMAL, WRITE_OPTIMIZED, io, opt_io);
+			return opt_io.GetCurrentBit();
 		}
 
 		uint64_t OptimizedToNormal(
 			std::vector<uint8_t>& wasm_bytes, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			return ConvertWasm(wasm_bytes, current_bit, bytes, READ_OPTIMIZED, WRITE_NORMAL);
+			Huffman huffman;
+			IO io(wasm_bytes, huffman);
+			OptimizedIO opt_io(bytes, current_bit, huffman);
+			ConvertWasm(READ_OPTIMIZED, WRITE_NORMAL, io, opt_io);
+			return opt_io.GetCurrentBit();
 		}
 	}
 }
