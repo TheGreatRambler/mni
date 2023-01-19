@@ -137,42 +137,6 @@ namespace Mni {
 		}
 
 		template <typename T>
-		uint64_t ReadHuffmanHeader(
-			Mni::Tree::Node<T>* root, uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			std::vector<T> elements;
-			current_bit = ReadSimpleIntegerList(elements, current_bit, bytes);
-
-			for(size_t i = 0; i < elements.size(); i++) {
-				uint64_t representation;
-				uint8_t bit_size;
-				current_bit = ReadNumUnsigned(&bit_size, 6, current_bit, bytes);
-				current_bit
-					= ReadNumUnsigned(&representation, (uint8_t)bit_size, current_bit, bytes);
-
-				Mni::Tree::Node<T>* current_root = root;
-				for(int8_t bit = bit_size - 1; bit > -1; bit--) {
-					if(representation & (0x1 << bit)) {
-						if(!current_root->right) {
-							current_root->right = new Mni::Tree::Node<T>();
-						}
-						current_root = current_root->right;
-					} else {
-						if(!current_root->left) {
-							current_root->left = new Mni::Tree::Node<T>();
-						}
-						current_root = current_root->left;
-					}
-
-					if(bit == 0) {
-						current_root->data = elements[i];
-					}
-				}
-			}
-
-			return current_bit;
-		}
-
-		template <typename T>
 		uint64_t ReadHuffmanValue(Mni::Tree::Node<T>* root, T* num_out, uint64_t current_bit,
 			std::vector<uint8_t>& bytes) {
 			while(true) {
@@ -285,6 +249,42 @@ namespace Mni {
 					}
 					data_out.push_back(num + last_num);
 					last_num += num;
+				}
+			}
+
+			return current_bit;
+		}
+
+		template <typename T>
+		uint64_t ReadHuffmanHeader(
+			Mni::Tree::Node<T>* root, uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			std::vector<T> elements;
+			current_bit = ReadSimpleIntegerList(elements, current_bit, bytes);
+
+			for(size_t i = 0; i < elements.size(); i++) {
+				uint64_t representation;
+				uint8_t bit_size;
+				current_bit = ReadNumUnsigned(&bit_size, 6, current_bit, bytes);
+				current_bit
+					= ReadNumUnsigned(&representation, (uint8_t)bit_size, current_bit, bytes);
+
+				Mni::Tree::Node<T>* current_root = root;
+				for(int8_t bit = bit_size - 1; bit > -1; bit--) {
+					if(representation & (0x1 << bit)) {
+						if(!current_root->right) {
+							current_root->right = new Mni::Tree::Node<T>();
+						}
+						current_root = current_root->right;
+					} else {
+						if(!current_root->left) {
+							current_root->left = new Mni::Tree::Node<T>();
+						}
+						current_root = current_root->left;
+					}
+
+					if(bit == 0) {
+						current_root->data = elements[i];
+					}
 				}
 			}
 

@@ -184,36 +184,6 @@ namespace Mni {
 		};
 
 		template <typename T>
-		uint64_t WriteHuffmanHeader(std::vector<T> data,
-			std::unordered_map<T, Mni::Tree::NodeRepresentation>& rep_map, uint64_t current_bit,
-			std::vector<uint8_t>& bytes) {
-			Mni::Tree::GenerateHuffman(data, rep_map);
-			return WriteHuffmanHeader(rep_map, current_bit, bytes);
-		}
-
-		template <typename T>
-		uint64_t WriteHuffmanHeader(std::unordered_map<T, Mni::Tree::NodeRepresentation>& rep_map,
-			uint64_t current_bit, std::vector<uint8_t>& bytes) {
-			std::vector<T> element_list;
-			std::vector<Mni::Tree::NodeRepresentation> representation_list;
-			for(auto& element : rep_map) {
-				element_list.push_back(element.first);
-				representation_list.push_back(element.second);
-			}
-
-			current_bit = WriteSimpleIntegerList(element_list, current_bit, bytes);
-
-			for(int i = 0; i < element_list.size(); i++) {
-				auto& rep   = representation_list[i];
-				current_bit = WriteNumUnsigned(rep.bit_size, 6, current_bit, bytes);
-				current_bit
-					= WriteNumUnsigned(rep.representation, rep.bit_size, current_bit, bytes);
-			}
-
-			return current_bit;
-		}
-
-		template <typename T>
 		uint64_t WriteLEBIntegerList(
 			std::vector<T> data, uint64_t current_bit, std::vector<uint8_t>& bytes) {
 			bool every_element_positive = true;
@@ -396,6 +366,36 @@ namespace Mni {
 					}
 					last_num = num;
 				}
+			}
+
+			return current_bit;
+		}
+
+		template <typename T>
+		uint64_t WriteHuffmanHeader(std::vector<T> data,
+			std::unordered_map<T, Mni::Tree::NodeRepresentation>& rep_map, uint64_t current_bit,
+			std::vector<uint8_t>& bytes) {
+			Mni::Tree::GenerateHuffman(data, rep_map);
+			return WriteHuffmanHeader(rep_map, current_bit, bytes);
+		}
+
+		template <typename T>
+		uint64_t WriteHuffmanHeader(std::unordered_map<T, Mni::Tree::NodeRepresentation>& rep_map,
+			uint64_t current_bit, std::vector<uint8_t>& bytes) {
+			std::vector<T> element_list;
+			std::vector<Mni::Tree::NodeRepresentation> representation_list;
+			for(auto& element : rep_map) {
+				element_list.push_back(element.first);
+				representation_list.push_back(element.second);
+			}
+
+			current_bit = WriteSimpleIntegerList(element_list, current_bit, bytes);
+
+			for(int i = 0; i < element_list.size(); i++) {
+				auto& rep   = representation_list[i];
+				current_bit = WriteNumUnsigned(rep.bit_size, 6, current_bit, bytes);
+				current_bit
+					= WriteNumUnsigned(rep.representation, rep.bit_size, current_bit, bytes);
 			}
 
 			return current_bit;

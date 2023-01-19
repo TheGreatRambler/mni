@@ -115,7 +115,8 @@ namespace Mni {
 		template <typename T> Node<T>* BuildHuffman(std::vector<Node<T>>& nodes) {
 			auto node_compare
 				= [](Node<T>* left, Node<T>* right) { return left->freq > right->freq; };
-			std::priority_queue<Node<T>*, std::vector<Node<T>*>, decltype(node_compare)> min_heap;
+			std::priority_queue<Node<T>*, std::vector<Node<T>*>, decltype(node_compare)> min_heap(
+				node_compare);
 
 			for(const Node<T>& node : nodes) {
 				min_heap.push(new Node(node.data, node.freq));

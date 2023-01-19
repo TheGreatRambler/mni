@@ -32,7 +32,7 @@ static const char* const descriptions[] = {
 	"A great smoky flavor",
 	"A 10 pound beast for the family",
 	"Dry but good for a hike",
-	"A delicate vegatable that tastes great",
+	"A delicate vegetable that tastes great",
 	"A massive piece that'll take you all day",
 	"A New England classic",
 };
@@ -85,6 +85,7 @@ __attribute__((used)) bool mni_render(int64_t frame) {
 	mni_set_fill(255, 255, 255, 255);
 	mni_clear_screen();
 
+	// Configure "scrolling"
 	if(mni_is_pressed()) {
 		if(!currently_dragging) {
 			drag_start_y          = mni_get_y_pressed();
@@ -97,6 +98,7 @@ __attribute__((used)) bool mni_render(int64_t frame) {
 		currently_dragging = false;
 	}
 
+	// Draw all dishes
 	for(int i = 0; i < num_dishes; i++) {
 		mni_set_fill(47, 72, 88, 255);
 		mni_draw_text_fill((char*)dishes[i], 10, screen_offset_y + (font_size + 7) * (i * 2 + 1));
